@@ -8,12 +8,15 @@ public class Joystick {
 	private Component[] components;
 
 	public Joystick() {
-		PollForStick();
+		connectToStick();
 		
 
 	}
 	
-	public void PollForStick() {
+	/*
+	 * Loops through all connected devices and finds the joystick
+	 */
+	public void connectToStick() {
 		
 		while(true) {
 			Controller[] ca = ControllerEnvironment.getDefaultEnvironment().getControllers();
@@ -29,6 +32,10 @@ public class Joystick {
 		}
 	}
 
+	/*
+	 * Polls joystick, then loops through each component, printing the components name
+	 * and poll data to the console
+	 */
 	public void UpdateToConsole() {
 		joystick.poll();
 		System.out.println("OUTPUT");
@@ -39,6 +46,10 @@ public class Joystick {
 
 	}
 
+	/*
+	 * For testing purposes. Connects to the controller and updates to console
+	 * every 5000 milliseconds
+	 */
 	public static void main(String[] args) {
 		
 		Joystick j = new Joystick();
@@ -52,7 +63,7 @@ public class Joystick {
 			}
 		}
 
-		/* Get the name of the controller */
+		
 	}
 
 }
