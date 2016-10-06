@@ -129,6 +129,34 @@ public class Joystick {
 				convertedPollData[2] &= ~(1 << (20 - i));
 			}
 		}
+
+		// half byte of pov; bit 1 is forward, bit 2 is backward,
+		// bit 3 is right, bit 4 is left
+		// forward bit
+		if ((rawPollData[pov] > 0.0f) && (rawPollData[pov] < 0.5f)) {
+			convertedPollData[2] |= (1 << 3);
+		} else {
+			convertedPollData[2] &= ~(1 << 3);
+		}
+		// backward bit
+		if ((rawPollData[pov] > 0.5f) && (rawPollData[pov] < 1.0f)) {
+			convertedPollData[2] |= (1 << 2);
+		} else {
+			convertedPollData[2] &= ~(1 << 2);
+		}
+		// right bit
+		if ((rawPollData[pov] > 0.25f) && (rawPollData[pov] < 0.75f)) {
+			convertedPollData[2] |= (1 << 1);
+		} else {
+			convertedPollData[2] &= ~(1 << 1);
+		}
+		// left bit
+		if (((rawPollData[pov] > 0.75f) && (rawPollData[pov] <= 1.0f))
+				|| ((rawPollData[pov] > 0.0f) && (rawPollData[pov] < 0.25f))) {
+			convertedPollData[2] |= (1 << 0);
+		} else {
+			convertedPollData[2] &= ~(1 << 0);
+		}
 	}
 
 	public float[] getRawPollData() {
@@ -160,12 +188,14 @@ public class Joystick {
 
 		Joystick j = new Joystick();
 		while (true) {
+			// j.updateToConsole();
 			j.update();
 			float[] output = j.getRawPollData();
 			byte[] byteOutput = j.getConvertedPollData();
-			for (int i = 0; i < 3; i++) {
-				
-				//fancy method from stack overflow to properly print bytes to console
+			for (int i = 0; i < byteOutput.length; i++) {
+
+				// fancy method from stack overflow to properly print bytes to console
+
 				System.out.print(
 						String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256)).replace(' ', '0'));
 				System.out.print(" ");
@@ -173,7 +203,7 @@ public class Joystick {
 			System.out.println();
 
 			try {
-				Thread.sleep(5000);
+				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				System.out.println("error");
 			}
