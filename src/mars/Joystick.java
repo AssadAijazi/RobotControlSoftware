@@ -6,6 +6,22 @@ import net.java.games.input.Component.Identifier;
 public class Joystick {
 	private Controller joystick;
 	private Component[] components;
+	//the poll data as received from the joystick controller
+	private float[] rawPollData;
+	
+	/* 8 Byte array to send to the robot
+	 * Byte 1 is a byte of all 1's. 
+	 * Bytes 2 and the first half of byte 3 represent the state
+	 * of the buttons (1 = on, 0 = off). 
+	 * The second half of byte 3 represents the state of the pov. 
+	 * Byte 4 represents the state of x-axis of the joystick. 
+	 * Byte 5 represents the state of the y-axis of the joystick.
+	 * Byte 6 represents the state of the rotational z-axis.
+	 * Byte 7 represents the state of the throttle.
+	 * Byte 8 is a byte of all 1's
+	 */
+	private byte[] convertedPollData;
+
 	
 	//indices for all of the buttons in the Component array + description of output
 	
@@ -41,6 +57,14 @@ public class Joystick {
 
 	public Joystick() {
 		connectToStick();
+		rawPollData = new float[components.length];
+		convertedPollData = new byte[8];
+		
+		//sets the first and last bytes of the data stream as all 1's, used for checking byte accuracy.
+		for(int i = 0; i < 8; i++) {
+			convertedPollData[0] |= (1 << i);
+			convertedPollData[7] |= (1 << i);
+		}
 	}
 	
 	/*
@@ -63,23 +87,45 @@ public class Joystick {
 	}
 	
 	/*
-	 * Updates the Component array and returns a float array of the raw outputs
+	 * Main update method to execute in launcher. Updates gets raw poll data
+	 * and converts to to byte array to be sent.
 	 */
-	public float[] updateRawPollData() {
-		float[] outputs = new float[components.length];
+	public void update() {
+		updateRawPollData();
+		updateConvertedPollData();
+	}
+	
+	/*
+	 * Polls the controller then updates the raw poll data array with the new values
+	 */
+	private void updateRawPollData() {
 		joystick.poll();
 		for(int i = 0; i < components.length; i++) {
-			outputs[i] = components[i].getPollData();
+			rawPollData[i] = components[i].getPollData();
 		}
+	}
+	
+	/*
+	 * Converts the raw poll data to a byte array to be sent to the robot
+	 */
+	private void updateConvertedPollData() {
+		//first byte of all 1's.
 		
-		return outputs;
+	}
+	
+	public float[] getRawPollData() {
+		return rawPollData;
+	}
+	
+	public byte[] getConvertedPollData() {
+		return convertedPollData;
 	}
 
 	/*
 	 * Polls joystick, then loops through each component, printing the components name
 	 * and poll data to the console
 	 */
-	public void UpdateToConsole() {
+	public void updateToConsole() {
 		joystick.poll();
 		System.out.println("OUTPUT");
 		for(int i = 0; i < components.length; i++ ) {
@@ -97,7 +143,8 @@ public class Joystick {
 		
 		Joystick j = new Joystick();
 		while(true) {
-			float[] output = j.updateRawPollData();
+			j.update();
+			float[] output = j.getRawPollData();
 			for(float pollData: output) {
 				System.out.println(pollData);
 			}
