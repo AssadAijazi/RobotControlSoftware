@@ -10,7 +10,7 @@ public class Joystick {
 	//indices for all of the buttons in the Component array + description of output
 	
 	//main stick y-axis; returns float between -1 and 1; 
-	//1 is all the way forward, -1 is all the way back
+	//-1 is all the way forward, 1 is all the way back
 	private int y = 0;
 	//main stick x-axis; returns float between -1 and 1;
 	//1 is all the way forward, -1 is all the way back
@@ -41,8 +41,6 @@ public class Joystick {
 
 	public Joystick() {
 		connectToStick();
-		
-
 	}
 	
 	/*
@@ -62,6 +60,19 @@ public class Joystick {
 			}
 			
 		}
+	}
+	
+	/*
+	 * Updates the Component array and returns a float array of the raw outputs
+	 */
+	public float[] updateRawPollData() {
+		float[] outputs = new float[components.length];
+		joystick.poll();
+		for(int i = 0; i < components.length; i++) {
+			outputs[i] = components[i].getPollData();
+		}
+		
+		return outputs;
 	}
 
 	/*
@@ -86,7 +97,10 @@ public class Joystick {
 		
 		Joystick j = new Joystick();
 		while(true) {
-			j.UpdateToConsole();
+			float[] output = j.updateRawPollData();
+			for(float pollData: output) {
+				System.out.println(pollData);
+			}
 			try {
 			Thread.sleep(5000);
 			} catch (InterruptedException e) {
