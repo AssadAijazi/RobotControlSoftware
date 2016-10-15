@@ -1,16 +1,31 @@
 package mars;
 
+
+
 public class Launcher {
 
 	public static void main(String[] args) {
 
 		Joystick j = new Joystick();
+		//class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
+		//handing network
+		int port = 6066;
+		String hostname = "localhost";
+		NetworkDaemon nd = new NetworkDaemon(hostname , port);
+		TestServer server = new TestServer(port);
+		server.start();
+		nd.connect();
+		
+		//main loop
 		while (true) {
-			// j.updateToConsole();
+			//updates joystick, receives raw data, then converts to byte array
 			j.update();
 			float[] output = j.getRawPollData();
 			byte[] byteOutput = pdc.convert(output);
+			
+			//sends to console
+			System.out.print("Sent                : ");
 			for (int i = 0; i < byteOutput.length; i++) {
 
 				// fancy method from stack overflow to properly print bytes to console
@@ -20,6 +35,17 @@ public class Launcher {
 				System.out.print(" ");
 			}
 			System.out.println();
+			
+			//sends to robot
+			nd.send(byteOutput);
+			
+			//gives robot enough time to receive byte array before sending another one
+			try {
+				Thread.sleep(1000); 
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
 		}
 

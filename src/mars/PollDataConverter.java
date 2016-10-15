@@ -109,7 +109,7 @@ public class PollDataConverter {
 	}
 	
 	//used to convert float to byte
-	public byte convertFloatToByte(float f) {
+	private byte convertFloatToByte(float f) {
 		return (byte)(Math.round((f+1)/2*255));
 	}
 }
