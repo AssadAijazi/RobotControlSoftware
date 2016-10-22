@@ -1,12 +1,18 @@
 package mars;
 
-
+import java.io.IOException;
 
 public class Launcher {
 
 	public static void main(String[] args) {
 
-		Joystick j = new Joystick();
+		Joystick j = null;
+		try {
+			j = new Joystick();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			System.exit(1);
+		}
 		//class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
 		//handing network
@@ -49,6 +55,9 @@ public class Launcher {
 
 		}
 
+	}
+	public static void pnt(String s){
+		System.out.println(s);
 	}
 
 }

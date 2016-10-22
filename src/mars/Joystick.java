@@ -1,5 +1,7 @@
 package mars;
 
+import java.io.IOException;
+
 import net.java.games.input.*;
 
 public class Joystick {
@@ -42,7 +44,7 @@ public class Joystick {
 	private int b11 = 15;
 	private int b12 = 16;
 
-	public Joystick() {
+	public Joystick() throws IOException {
 		connectToStick();
 		rawPollData = new float[components.length];
 	}
@@ -50,9 +52,9 @@ public class Joystick {
 	/*
 	 * Loops through all connected devices and finds the joystick
 	 */
-	private void connectToStick() {
-
-		while (true) {
+	private void connectToStick() throws IOException {
+		long start = System.currentTimeMillis();
+		while (System.currentTimeMillis() < start+500) {
 			Controller[] ca = ControllerEnvironment.getDefaultEnvironment().getControllers();
 			for (int i = 0; i < ca.length; i++) {
 				if (ca[i].getType().equals(Controller.Type.STICK)) {
@@ -63,6 +65,7 @@ public class Joystick {
 				}
 			}
 		}
+		throw new IOException("Joystick not found");
 	}
 
 	/*
