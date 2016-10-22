@@ -15,11 +15,11 @@ public class Launcher {
 		//class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
 		//handing network
-		int port = 6066;
-		String hostname = "localhost";
+		int port = 5565;
+		String hostname = "192.168.1.102";
 		NetworkDaemon nd = new NetworkDaemon(hostname , port);
-		TestServer server = new TestServer(port);
-		server.start();
+		//TestServer server = new TestServer(port);
+		//server.start();
 		nd.connect();
 		
 		//main loop
