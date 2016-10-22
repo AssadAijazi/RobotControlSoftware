@@ -3,6 +3,8 @@ package mars;
 import java.io.IOException;
 
 public class Launcher {
+	public static final boolean DEBUG_MODE = false;
+	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 
 	public static void main(String[] args) {
 
@@ -10,47 +12,54 @@ public class Launcher {
 		try {
 			j = new Joystick();
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			System.err.println(e1);
 		}
-		//class for converting raw poll data to byte array
+		// class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
-		//handing network
+		// handing network
 		int port = 5565;
-		String hostname = "192.168.1.102";
-		NetworkDaemon nd = new NetworkDaemon(hostname , port);
-		//TestServer server = new TestServer(port);
-		//server.start();
+		String hostname = DEBUG_MODE ? "localhost" : "192.168.1.102";
+		NetworkDaemon nd = new NetworkDaemon(hostname, port);
+		if (DEBUG_MODE) {
+			TestServer server = new TestServer(port);
+			server.start();
+		}
 		nd.connect();
-		
-		//main loop
+
+		// main loop
 		while (true) {
-			float[] output = new float[20];//replace with expected length of raw poll data
-			if (j != null){
-			//updates joystick, receives raw data, then converts to byte array
-			j.update();
-			output = j.getRawPollData();
+			float[] output = new float[20];// replace with expected length of
+											// raw poll data
+			if (j != null) {
+				// updates joystick, receives raw data, then converts to byte
+				// array
+				j.update();
+				output = j.getRawPollData();
 			}
-			
+
 			byte[] byteOutput = pdc.convert(output);
-			
-			//sends to console
-			System.out.print("Sent                : ");
-			for (int i = 0; i < byteOutput.length; i++) {
+			if (nd.isConnected()) {
+				// sends to console
+				System.out.print("Sent                : ");
+				for (int i = 0; i < byteOutput.length; i++) {
 
-				// fancy method from stack overflow to properly print bytes to console
+					// fancy method from stack overflow to properly print bytes
+					// to
+					// console
 
-				System.out.print(
-						String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256)).replace(' ', '0'));
-				System.out.print(" ");
+					System.out.print(String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256))
+							.replace(' ', '0'));
+					System.out.print(" ");
+				}
+				System.out.println();
+
+				// sends to robot
+				nd.send(byteOutput);
 			}
-			System.out.println();
-			
-			//sends to robot
-			nd.send(byteOutput);
-			
-			//gives robot enough time to receive byte array before sending another one
+			// gives robot enough time to receive byte array before sending
+			// another one
 			try {
-				Thread.sleep(1000); 
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -58,7 +67,8 @@ public class Launcher {
 		}
 
 	}
-	public static void pnt(String s){
+
+	public static void pnt(String s) {
 		System.out.println(s);
 	}
 

@@ -7,32 +7,38 @@ public class NetworkDaemon {
 	private Socket connection;
 	private String serverName;
 	private int port;
-	
+
 	public NetworkDaemon(String sN, int p) {
-		connection = null;
+		connection = new Socket();
 		serverName = sN;
 		port = p;
 	}
-	
-	//connects to robot
+
+	// connects to robot
 	public void connect() {
 		try {
-			connection = new Socket(serverName, port);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			connection.connect(new InetSocketAddress(serverName,port),1000);
+		} catch (Exception e) {
+			System.err.println("Robot connection failure: " + e);
 		}
 	}
-	
-	//sends byte array of joystick to robot
+
+	// sends byte array of joystick to robot
 	public void send(byte[] byteArr) {
-		try {
-			OutputStream out = connection.getOutputStream();
-			out.write(byteArr, 0, byteArr.length);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (connection.isConnected()) {
+			try {
+				OutputStream out = connection.getOutputStream();
+				out.write(byteArr, 0, byteArr.length);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}else{
+			System.err.println("Warning: data not sent! (no connection)");
 		}
+	}
+	//determines if is connected (accessor method for socket)
+	public boolean isConnected(){
+		return connection.isConnected();
 	}
 
 }
