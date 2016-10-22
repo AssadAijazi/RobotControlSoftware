@@ -11,7 +11,6 @@ public class Launcher {
 			j = new Joystick();
 		} catch (IOException e1) {
 			e1.printStackTrace();
-			System.exit(1);
 		}
 		//class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
@@ -25,9 +24,13 @@ public class Launcher {
 		
 		//main loop
 		while (true) {
+			float[] output = new float[20];//replace with expected length of raw poll data
+			if (j != null){
 			//updates joystick, receives raw data, then converts to byte array
 			j.update();
-			float[] output = j.getRawPollData();
+			output = j.getRawPollData();
+			}
+			
 			byte[] byteOutput = pdc.convert(output);
 			
 			//sends to console
