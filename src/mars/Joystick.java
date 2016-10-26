@@ -11,7 +11,6 @@ public class Joystick {
 	private float[] rawPollData;
 	//used to check for changes in state of controller
 	private float[] previousRawPollData;
-	private volatile boolean changed;
 
 	// indices for all of the buttons in the Component array + description of
 	// output
@@ -51,7 +50,6 @@ public class Joystick {
 		connectToStick();
 		previousRawPollData = new float[components.length];
 		rawPollData = new float[components.length];
-		changed = false;
 	}
 
 	/*

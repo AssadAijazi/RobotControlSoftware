@@ -3,7 +3,7 @@ package mars;
 import java.io.IOException;
 
 public class Launcher {
-	public static final boolean DEBUG_MODE = true;
+	public static final boolean DEBUG_MODE = false;
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 
 	public static void main(String[] args) {
@@ -78,7 +78,8 @@ public class Launcher {
 			}
 		}
 	}
-
+	
+	//Sets up thread to send robot state of controller if there is a change
 	public static class UpdateOnChange implements Runnable {
 		Joystick j;
 		NetworkDaemon nd;
