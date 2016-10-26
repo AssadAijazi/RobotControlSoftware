@@ -13,7 +13,7 @@ public class PollDataConverter {
 	 * rotational z-axis. Byte 7 represents the state of the throttle. Byte 8 is
 	 * a byte of all 1's
 	 */
-	private byte[] convertedPollData;
+	private volatile byte[] convertedPollData;
 
 	// see Joystick class for documentation
 	
@@ -28,8 +28,12 @@ public class PollDataConverter {
 		convertedPollData[0] = -1;
 		convertedPollData[7] = -1;
 	}
+	
+	public byte[] getByteArr() {
+		return convertedPollData;
+	}
 
-	public byte[] convert(float[] floatArr) {
+	public void convert(float[] floatArr) {
 		rawPollData = floatArr;
 
 		// setting up the bytes for the buttons
@@ -92,7 +96,6 @@ public class PollDataConverter {
 		// converting the throttle floating-point value to byte
 		convertedPollData[6] = convertFloatToByte(rawPollData[SLIDER]);
 
-		return convertedPollData;
 	}
 
 	// used to convert float to byte

@@ -3,7 +3,7 @@ package mars;
 import java.io.IOException;
 
 public class Launcher {
-	public static final boolean DEBUG_MODE = false;
+	public static final boolean DEBUG_MODE = true;
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 
 	public static void main(String[] args) {
@@ -25,51 +25,97 @@ public class Launcher {
 			server.start();
 		}
 		nd.connect();
+		// initial poll of the controller
+		float[] output = new float[17];
+		j.update();
+		output = j.getRawPollData();
+		pdc.convert(output);
+
+		// starts thread for periodic update
+		new Thread(new PeriodicUpdate(nd, pdc)).start();
+
+		// starts thread for update on change
+		new Thread(new UpdateOnChange(j, nd, pdc)).start();
 
 		// main loop
 		while (true) {
-			float[] output = new float[20];// replace with expected length of
-											// raw poll data
+
 			if (j != null) {
 				// updates joystick, receives raw data, then converts to byte
 				// array
 				j.update();
 				output = j.getRawPollData();
-			}
-
-			byte[] byteOutput = pdc.convert(output);
-			if (nd.isConnected()) {
-				// sends to console
-				System.out.print("Sent                : ");
-				for (int i = 0; i < byteOutput.length; i++) {
-
-					// fancy method from stack overflow to properly print bytes
-					// to
-					// console
-
-					System.out.print(String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256))
-							.replace(' ', '0'));
-					System.out.print(" ");
-				}
-				System.out.println();
-
-				// sends to robot
-				nd.send(byteOutput);
-			}
-			// gives robot enough time to receive byte array before sending
-			// another one
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+				pdc.convert(output);
 			}
 
 		}
 
 	}
 
-	public static void pnt(String s) {
-		System.out.println(s);
+	// sets up thread to send robot state of controller every 1 second
+	public static class PeriodicUpdate implements Runnable {
+		NetworkDaemon nd;
+		PollDataConverter pdc;
+
+		public PeriodicUpdate(NetworkDaemon net, PollDataConverter poll) {
+			nd = net;
+			pdc = poll;
+		}
+
+		@Override
+		public void run() {
+			while (true) {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if (nd.isConnected()) {
+					printByteArr(pdc.getByteArr());
+					nd.send(pdc.getByteArr());
+				}
+			}
+		}
+	}
+
+	public static class UpdateOnChange implements Runnable {
+		Joystick j;
+		NetworkDaemon nd;
+		PollDataConverter pdc;
+
+		public UpdateOnChange(Joystick joy, NetworkDaemon net, PollDataConverter poll) {
+			j = joy;
+			nd = net;
+			pdc = poll;
+		}
+
+		@Override
+		public void run() {
+			while (true) {
+				if (nd.isConnected() && j.isChanged()) {
+					printByteArr(pdc.getByteArr());
+					nd.send(pdc.getByteArr());
+				}
+			}
+
+		}
+
+	}
+
+	// fancy method from stack overflow to properly print bytes
+	// to console
+
+	public static void printByteArr(byte[] byteOutput) {
+		if (!DEBUG_MODE) {
+			System.out.print("Sent                : ");
+			for (int i = 0; i < byteOutput.length; i++) {
+				System.out.print(
+						String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256)).replace(' ', '0'));
+				System.out.print(" ");
+			}
+			System.out.println();
+		}
 	}
 
 }
