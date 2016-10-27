@@ -3,7 +3,7 @@ package mars;
 import java.io.IOException;
 
 public class Launcher {
-	public static final boolean DEBUG_MODE = false;
+	public static final boolean DEBUG_MODE = true;
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 
 	public static void main(String[] args) {
@@ -27,26 +27,26 @@ public class Launcher {
 		nd.connect();
 		// initial poll of the controller
 		float[] output = new float[17];
-		j.update();
-		output = j.getRawPollData();
-		pdc.convert(output);
-
+		
 		// starts thread for periodic update
 		new Thread(new PeriodicUpdate(nd, pdc)).start();
 
 		// starts thread for update on change
+		if(j != null) {
 		new Thread(new UpdateOnChange(j, nd, pdc)).start();
+		}
 
 		// main loop
 		while (true) {
-
+			output = new float[17];
 			if (j != null) {
 				// updates joystick, receives raw data, then converts to byte
 				// array
 				j.update();
 				output = j.getRawPollData();
-				pdc.convert(output);
 			}
+			pdc.convert(output);
+
 
 		}
 
@@ -109,7 +109,7 @@ public class Launcher {
 
 	public static void printByteArr(byte[] byteOutput) {
 		if (!DEBUG_MODE) {
-			System.out.print("Sent                : ");
+			System.out.print("Sent: ");
 			for (int i = 0; i < byteOutput.length; i++) {
 				System.out.print(
 						String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256)).replace(' ', '0'));

@@ -6,10 +6,11 @@ import net.java.games.input.*;
 
 public class Joystick {
 	private Controller joystick;
+	private boolean connected = false;
 	private Component[] components;
 	// the poll data as received from the joystick controller
 	private float[] rawPollData;
-	//used to check for changes in state of controller
+	// used to check for changes in state of controller
 	private float[] previousRawPollData;
 
 	// indices for all of the buttons in the Component array + description of
@@ -57,11 +58,12 @@ public class Joystick {
 	 */
 	private void connectToStick() throws IOException {
 		long start = System.currentTimeMillis();
-		while (System.currentTimeMillis() < start+500) {
+		while (System.currentTimeMillis() < start + 500) {
 			Controller[] ca = ControllerEnvironment.getDefaultEnvironment().getControllers();
 			for (int i = 0; i < ca.length; i++) {
 				if (ca[i].getType().equals(Controller.Type.STICK)) {
 					System.out.println("Joystick found");
+					connected = true;
 					joystick = ca[i];
 					components = joystick.getComponents();
 					return;
@@ -76,19 +78,23 @@ public class Joystick {
 	 * values
 	 */
 	public void update() {
-		for(int i = 0; i < components.length; i++) {
+		for (int i = 0; i < components.length; i++) {
 			previousRawPollData[i] = components[i].getPollData();
 		}
-		joystick.poll();
-		for (int i = 0; i < components.length; i++) {
-			rawPollData[i] = components[i].getPollData();
+		if (connected) {
+
+		connected = joystick.poll();
 		}
-		
-	}
+
+			for (int i = 0; i < components.length; i++) {
+				rawPollData[i] = components[i].getPollData();
+			}
+		}
 	
+
 	public boolean isChanged() {
-		for(int i = 0; i < components.length; i++) {
-			if(!(Float.compare(rawPollData[i], previousRawPollData[i]) == 0)) {
+		for (int i = 0; i < components.length; i++) {
+			if (!(Float.compare(rawPollData[i], previousRawPollData[i]) == 0)) {
 				return true;
 			}
 		}
@@ -111,5 +117,5 @@ public class Joystick {
 		}
 
 	}
-	
+
 }
