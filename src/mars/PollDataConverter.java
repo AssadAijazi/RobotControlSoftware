@@ -32,6 +32,14 @@ public class PollDataConverter {
 	public byte[] getByteArr() {
 		return convertedPollData;
 	}
+	
+	public String getByteArrAsStr() {
+		String byteArrStr = "";
+		for(int i = 0; i < convertedPollData.length; i++) {
+			byteArrStr += (String.format("%8s", Integer.toBinaryString((convertedPollData[i] + 256) % 256)).replace(' ', '0') + " ");
+		}
+		return byteArrStr;
+	}
 
 	public void convert(float[] floatArr) {
 		rawPollData = floatArr;
@@ -100,6 +108,6 @@ public class PollDataConverter {
 
 	// used to convert float to byte
 	private byte convertFloatToByte(float f) {
-		return (byte) (Math.round((f + 1) / 2 * 255));
+		return (byte) (Math.round((f + 1.0) / 2.0 * 255.0));
 	}
 }

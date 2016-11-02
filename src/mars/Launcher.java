@@ -7,6 +7,7 @@ public class Launcher {
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 
 	public static void main(String[] args) {
+		UserInterface ui = new UserInterface();
 
 		Joystick j = null;
 		try {
@@ -46,6 +47,8 @@ public class Launcher {
 				output = j.getRawPollData();
 			}
 			pdc.convert(output);
+			ui.update(pdc.getByteArrAsStr());
+
 
 
 		}
@@ -111,8 +114,8 @@ public class Launcher {
 		if (!DEBUG_MODE) {
 			System.out.print("Sent: ");
 			for (int i = 0; i < byteOutput.length; i++) {
-				System.out.print(
-						String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256)).replace(' ', '0'));
+				String formattedByteArr = String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256)).replace(' ', '0');
+				System.out.print(formattedByteArr);
 				System.out.print(" ");
 			}
 			System.out.println();

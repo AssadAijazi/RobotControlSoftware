@@ -48,9 +48,10 @@ public class Joystick {
 	private int b12 = 16;
 
 	public Joystick() throws IOException {
+		previousRawPollData = new float[17];
+		rawPollData = new float[17];
 		connectToStick();
-		previousRawPollData = new float[components.length];
-		rawPollData = new float[components.length];
+		
 	}
 
 	/*
