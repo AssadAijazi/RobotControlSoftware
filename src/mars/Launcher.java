@@ -125,7 +125,6 @@ public class Launcher {
 			while (true) {
 				if (nd.isConnected() && j.isChanged()) {
 					printByteArr(pdc.getByteArr());
-					j.updateToConsole();
 					try {
 						nd.send(pdc.getByteArr());
 					} catch (Exception e) {
