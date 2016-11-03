@@ -15,16 +15,16 @@ public class NetworkDaemon {
 	}
 
 	// connects to robot
-	public void connect() {
+	public void connect() throws Exception {
 		try {
 			connection.connect(new InetSocketAddress(serverName,port),1000);
 		} catch (Exception e) {
-			System.err.println("Robot connection failure: " + e);
+			throw e;
 		}
 	}
 
 	// sends byte array of joystick to robot
-	public void send(byte[] byteArr) {
+	public void send(byte[] byteArr) throws Exception {
 		if (connection.isConnected()) {
 			try {
 				OutputStream out = connection.getOutputStream();
@@ -33,7 +33,7 @@ public class NetworkDaemon {
 				e.printStackTrace();
 			}
 		}else{
-			System.err.println("Warning: data not sent! (no connection)");
+			throw new Exception("Connection interrupted. Restart");
 		}
 	}
 	//determines if is connected (accessor method for socket)

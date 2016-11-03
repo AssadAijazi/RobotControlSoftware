@@ -108,6 +108,11 @@ public class PollDataConverter {
 
 	// used to convert float to byte
 	private byte convertFloatToByte(float f) {
+		
+		//fixing rounding issues so that natural state is at 0
+		if (f < 0 && f > -0.0079) {
+			f = (float)(Math.ceil(f));
+		}
 		return (byte) (Math.round((f + 1.0) / 2.0 * 255.0));
 	}
 }

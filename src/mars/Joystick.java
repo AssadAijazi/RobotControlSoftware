@@ -71,20 +71,23 @@ public class Joystick {
 				}
 			}
 		}
-		throw new IOException("Joystick not found");
+		throw new IOException("Joystick not found. Reconnect and restart.");
 	}
 
 	/*
 	 * Polls the controller then updates the raw poll data array with the new
 	 * values
 	 */
-	public void update() {
+	public void update() throws Exception {
 		for (int i = 0; i < components.length; i++) {
 			previousRawPollData[i] = components[i].getPollData();
 		}
 		if (connected) {
 
 		connected = joystick.poll();
+		if(!connected) {
+			throw new Exception("Joystick has been disconnected. Restart.");
+		}
 		}
 
 			for (int i = 0; i < components.length; i++) {
