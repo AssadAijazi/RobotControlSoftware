@@ -11,6 +11,9 @@ public class UserInterface {
 	private static final int YHEIGHT = 600;
 	private MainPanel mainPanel;
 	private boolean attemptConnection = false;
+	private boolean attemptDisconnection = false;
+	private boolean isDebug = false;
+	private boolean isConnected = false;
 
 	public UserInterface() {
 		JFrame frame = new JFrame("Robot Control Software");
@@ -21,11 +24,34 @@ public class UserInterface {
 		frame.setContentPane(mainPanel);
 		frame.setVisible(true);
 	}
+	
+	//when there is a change in connection status, this method is called so
+	//the UI can respond appropriately
+	public void updateConnectionStatus(boolean b) {
+		isConnected = b;
+		if(isConnected) {
+			mainPanel.connectionPanel.status.setText("Connected");
+			mainPanel.connectionPanel.status.setForeground(Color.GREEN);
+			mainPanel.connectionPanel.mode.setEnabled(false);
+			mainPanel.connectionPanel.connect.setText("Disconnect");
+		} else {
+			mainPanel.connectionPanel.mode.setEnabled(true);
+			mainPanel.connectionPanel.connect.setText("Connect");
+		}
+	}
 
+	public boolean getDebugMode() {
+		return isDebug;
+	}
 	// determines whether to attempt connection, based on whether the "connect"
 	// button has been pushed
+	
 	public boolean getAttemptConnection() {
 		return attemptConnection;
+	}
+	
+	public void setAttemptConnection(boolean b) {
+		attemptConnection = b;
 	}
 
 	public void addError(String error) {
@@ -77,7 +103,7 @@ public class UserInterface {
 		}
 
 		private class ConnectionPanel extends JPanel {
-			private JLabel title;
+			private JLabel title, status;
 			private JButton connect, mode;
 
 			private ConnectionPanel() {
@@ -85,26 +111,53 @@ public class UserInterface {
 				this.setBorder(new LineBorder(Color.BLACK));
 				this.setPreferredSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 3) / 4));
 				this.setMinimumSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 3) / 4));
-
+				
+				Dimension titleDim = new Dimension(80, 25);
+				Dimension compDim = new Dimension(80, 25);
+				Dimension panelDim = new Dimension(200, 30);
+				
 				title = new JLabel("Connection");
 				title.setAlignmentX(CENTER_ALIGNMENT);
 				this.add(title);
+		
+				JPanel statusPanel = new JPanel();
+				JLabel statusTitle = new JLabel("Status: ");
+				statusTitle.setHorizontalAlignment(SwingConstants.RIGHT);
+				statusTitle.setPreferredSize(titleDim);
+				statusTitle.setMaximumSize(titleDim);
+				statusPanel.add(statusTitle);
+				
+				status = new JLabel("Disconnected");
+				status.setPreferredSize(compDim);
+				status.setMinimumSize(compDim);
+				status.setForeground(Color.RED);
+				
+				statusPanel.add(status);
+				statusPanel.setPreferredSize(panelDim);
+				statusPanel.setMaximumSize(panelDim);
+				this.add(statusPanel);
 
 				JPanel debug = new JPanel();
-				debug.add(new JLabel("Debug Mode: "));
+				JLabel debugTitle = new JLabel("Debug Mode: ");
+				debug.add(debugTitle);
 				mode = new JButton("Off");
 				Dimension buttonDim = new Dimension(80, 25);
 				mode.setPreferredSize(buttonDim);
 				mode.setMinimumSize(buttonDim);
+				
+				//for toggling debug mode via debug button
 				mode.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
 						JButton source = (JButton)(e.getSource());
 						if (source.getText().equals("On")) {
 							source.setText("Off");
+							isDebug = false;
 						} else {
 							source.setText("On");
+							isDebug = true;
 						}
+						
 					}
 
 				});
@@ -117,10 +170,15 @@ public class UserInterface {
 
 				connect = new JButton("Connect");
 				connect.setAlignmentX(CENTER_ALIGNMENT);
+				//action listener for the connect button; used for connecting and disconnecting
 				connect.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						attemptConnection = true;
+						if(isConnected) {
+							attemptDisconnection = true;
+						} else {
+							attemptConnection = true;
+						}
 					}
 				});
 
@@ -152,14 +210,16 @@ public class UserInterface {
 			}
 
 			private void addError(String error) {
+				if (this.getComponentCount() > 7 ) {
+					Component t = this.getComponent(0);
+					this.removeAll();
+					this.add(t);
+				}
 				JLabel errorMsg = new JLabel(error);
 				errorMsg.setAlignmentX(CENTER_ALIGNMENT);
 				errorMsg.setForeground(Color.RED);
 				this.add(errorMsg);
-				System.out.println(this.getComponentCount());
-				if (this.getComponentCount() > 2 ) {
-					this.remove(this.getComponent(1));
-				}
+				
 				this.repaint();
 				this.revalidate();
 			}

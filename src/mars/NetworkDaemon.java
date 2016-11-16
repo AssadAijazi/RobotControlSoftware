@@ -6,18 +6,26 @@ import java.net.*;
 public class NetworkDaemon {
 	private Socket connection;
 	private String serverName;
+	private String debugServerName;
 	private int port;
 
 	public NetworkDaemon(String sN, int p) {
-		connection = new Socket();
 		serverName = sN;
+		debugServerName = "localhost";
 		port = p;
 	}
 
 	// connects to robot
-	public void connect() throws Exception {
+	public void connect(boolean isDebug) throws Exception {
+		String connectAddress;
+		if(isDebug) {
+			connectAddress = debugServerName;
+		} else {
+			connectAddress = serverName;
+		}
 		try {
-			connection.connect(new InetSocketAddress(serverName,port),1000);
+			connection = new Socket();
+			connection.connect(new InetSocketAddress(connectAddress,port),1000);
 		} catch (Exception e) {
 			throw e;
 		}
@@ -39,6 +47,15 @@ public class NetworkDaemon {
 	//determines if is connected (accessor method for socket)
 	public boolean isConnected(){
 		return connection.isConnected();
+	}
+	
+	public void disconnect() {
+		try {
+			connection.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }

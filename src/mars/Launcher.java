@@ -3,8 +3,9 @@ package mars;
 import java.io.IOException;
 
 public class Launcher {
-	public static final boolean DEBUG_MODE = false;
+	public static  boolean DEBUG_MODE;
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
+	public static final int PORT = 5565;
 	public static boolean connectionActivated = false;
 
 	public static void main(String[] args) {
@@ -20,13 +21,8 @@ public class Launcher {
 		// class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
 		// handing network
-		int port = 5565;
-		String hostname = DEBUG_MODE ? "localhost" : "192.168.1.102";
-		NetworkDaemon nd = new NetworkDaemon(hostname, port);
-		if (DEBUG_MODE) {
-			TestServer server = new TestServer(port);
-			server.start();
-		}
+		String hostname = ROBOT_DEFAULT_ADDRESS;
+		NetworkDaemon nd = new NetworkDaemon(hostname, PORT);
 		
 		// initial poll of the controller
 		float[] output = new float[17];
@@ -36,21 +32,32 @@ public class Launcher {
 
 			// checks if threads sending signals have been instantiated yet
 			if (!connectionActivated) {
+				
 				if (ui.getAttemptConnection()) {
-					try {
-						nd.connect();
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-						ui.addError("Robot Connection failure. Restart.");
-					}
-					// starts thread for periodic update
-					new Thread(new PeriodicUpdate(nd, pdc, ui)).start();
-					// starts thread for update on change
-					if (j != null) {
-						new Thread(new UpdateOnChange(j, nd, pdc, ui)).start();
-					}
-					connectionActivated = true;
+					attemptInitializeConnection(j, nd, pdc, ui);
+//					DEBUG_MODE = ui.getDebugMode();
+//					TestServer server = new TestServer(PORT);
+//					if(DEBUG_MODE) server.start();
+//					connectionActivated = true;
+//					try {
+//						nd.connect(DEBUG_MODE);
+//						// starts thread for periodic update
+//						new Thread(new PeriodicUpdate(nd, pdc, ui)).start();
+//						// starts thread for update on change
+//						if (j != null) {
+//							new Thread(new UpdateOnChange(j, nd, pdc, ui)).start();
+//						}
+//						ui.updateConnectionStatus(true);
+//					} catch (Exception e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//						ui.addError("Robot Connection failure. Try again.");
+//						connectionActivated = false;
+//						if(DEBUG_MODE) server.interrupt(); 
+//						
+//					}
+//					
+//					ui.setAttemptConnection(false);
 				}
 			}
 			output = new float[17];
@@ -138,7 +145,35 @@ public class Launcher {
 		}
 
 	}
-
+	
+	
+	//code that tries to set up a connection to robot if none already exists
+	public static void attemptInitializeConnection(Joystick j, NetworkDaemon nd, PollDataConverter pdc, UserInterface ui) {
+		DEBUG_MODE = ui.getDebugMode();
+		TestServer server = new TestServer(PORT);
+		if(DEBUG_MODE) server.start();
+		connectionActivated = true;
+		try {
+			nd.connect(DEBUG_MODE);
+			// starts thread for periodic update
+			new Thread(new PeriodicUpdate(nd, pdc, ui)).start();
+			// starts thread for update on change
+			if (j != null) {
+				new Thread(new UpdateOnChange(j, nd, pdc, ui)).start();
+			}
+			ui.updateConnectionStatus(true);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			ui.addError("Robot Connection failure. Try again.");
+			connectionActivated = false;
+			if(DEBUG_MODE) server.interrupt(); 
+			
+		}
+		
+		ui.setAttemptConnection(false);
+		
+	}
 	// fancy method from stack overflow to properly print bytes
 	// to console
 
