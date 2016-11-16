@@ -32,32 +32,9 @@ public class Launcher {
 
 			// checks if threads sending signals have been instantiated yet
 			if (!connectionActivated) {
-				
+				//checks if connect button has been pushed
 				if (ui.getAttemptConnection()) {
 					attemptInitializeConnection(j, nd, pdc, ui);
-//					DEBUG_MODE = ui.getDebugMode();
-//					TestServer server = new TestServer(PORT);
-//					if(DEBUG_MODE) server.start();
-//					connectionActivated = true;
-//					try {
-//						nd.connect(DEBUG_MODE);
-//						// starts thread for periodic update
-//						new Thread(new PeriodicUpdate(nd, pdc, ui)).start();
-//						// starts thread for update on change
-//						if (j != null) {
-//							new Thread(new UpdateOnChange(j, nd, pdc, ui)).start();
-//						}
-//						ui.updateConnectionStatus(true);
-//					} catch (Exception e) {
-//						// TODO Auto-generated catch block
-//						e.printStackTrace();
-//						ui.addError("Robot Connection failure. Try again.");
-//						connectionActivated = false;
-//						if(DEBUG_MODE) server.interrupt(); 
-//						
-//					}
-//					
-//					ui.setAttemptConnection(false);
 				}
 			}
 			output = new float[17];
