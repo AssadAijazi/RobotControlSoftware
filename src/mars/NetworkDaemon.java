@@ -46,7 +46,7 @@ public class NetworkDaemon {
 	}
 	//determines if is connected (accessor method for socket)
 	public boolean isConnected(){
-		return connection.isConnected();
+		return !connection.isClosed();
 	}
 	
 	public void disconnect() {

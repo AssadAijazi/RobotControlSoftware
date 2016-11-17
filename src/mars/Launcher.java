@@ -1,12 +1,16 @@
 package mars;
 
+import java.awt.Color;
 import java.io.IOException;
 
 public class Launcher {
-	public static  boolean DEBUG_MODE;
+	public static boolean DEBUG_MODE;
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 	public static final int PORT = 5565;
 	public static boolean connectionActivated = false;
+	public static TestServer testServer;
+	public static PeriodicUpdate pu;
+	public static UpdateOnChange uoc;
 
 	public static void main(String[] args) {
 		UserInterface ui = new UserInterface();
@@ -23,7 +27,7 @@ public class Launcher {
 		// handing network
 		String hostname = ROBOT_DEFAULT_ADDRESS;
 		NetworkDaemon nd = new NetworkDaemon(hostname, PORT);
-		
+
 		// initial poll of the controller
 		float[] output = new float[17];
 
@@ -32,9 +36,24 @@ public class Launcher {
 
 			// checks if threads sending signals have been instantiated yet
 			if (!connectionActivated) {
-				//checks if connect button has been pushed
+				// checks if connect button has been pushed
 				if (ui.getAttemptConnection()) {
 					attemptInitializeConnection(j, nd, pdc, ui);
+				}
+			} else {
+				// checks if disconnect button has been pushed
+				if (ui.getAttemptDisconnection()) {
+					pu.interrupt();
+					if(uoc != null) {
+					 uoc.interrupt();
+					}
+					if( testServer != null) {
+					 testServer.interrupt();
+					}
+					connectionActivated = false;
+					ui.updateConnectionStatus(false);
+					ui.setAttemptDisconnection(false);
+					ui.setByteOutputColor(Color.BLACK);
 				}
 			}
 			output = new float[17];
@@ -47,16 +66,52 @@ public class Launcher {
 				} catch (Exception e) {
 					ui.addError(e.toString());
 				}
-				
+
 				output = j.getRawPollData();
-			}
+			} 
+			
 			pdc.convert(output);
 		}
 
 	}
 
+	// code that tries to set up a connection to robot/test server if none already exists
+	public static void attemptInitializeConnection(Joystick j, NetworkDaemon nd, PollDataConverter pdc,
+			UserInterface ui) {
+		DEBUG_MODE = ui.getDebugMode();
+
+		connectionActivated = true;
+		if (DEBUG_MODE) {
+			testServer = new TestServer(PORT);
+			testServer.start();
+		}
+		try {
+			nd.connect(DEBUG_MODE);
+
+			// starts thread for periodic update
+			pu = new PeriodicUpdate(nd, pdc, ui);
+			pu.start();
+			// starts thread for update on change
+			if (j != null) {
+				uoc = new UpdateOnChange(j, nd, pdc, ui);
+				uoc.start();
+			}
+			ui.updateConnectionStatus(true);
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			ui.addError("Robot Connection failure. Try again.");
+			connectionActivated = false;
+
+		}
+
+		ui.setAttemptConnection(false);
+
+	}
+
 	// sets up thread to send robot state of controller every 1 second
-	public static class PeriodicUpdate implements Runnable {
+	public static class PeriodicUpdate extends Thread {
 		NetworkDaemon nd;
 		PollDataConverter pdc;
 		UserInterface ui;
@@ -69,17 +124,21 @@ public class Launcher {
 
 		@Override
 		public void run() {
-			while (true) {
+			while (!Thread.currentThread().isInterrupted()) {
 				try {
-					Thread.sleep(1000);
+					Thread.sleep(100);
+					ui.setByteOutputColor(Color.BLACK);
+					Thread.sleep(900);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					Thread.currentThread().interrupt();
 				}
 				if (nd.isConnected()) {
 					printByteArr(pdc.getByteArr());
 					try {
+						ui.setByteOutputColor(Color.GREEN);
 						nd.send(pdc.getByteArr());
+						ui.setByteOutput(pdc.getByteArrAsStr());
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -87,11 +146,12 @@ public class Launcher {
 					}
 				}
 			}
+			
 		}
 	}
 
 	// Sets up thread to send robot state of controller if there is a change
-	public static class UpdateOnChange implements Runnable {
+	public static class UpdateOnChange extends Thread {
 		Joystick j;
 		NetworkDaemon nd;
 		PollDataConverter pdc;
@@ -106,11 +166,13 @@ public class Launcher {
 
 		@Override
 		public void run() {
-			while (true) {
+			while (!Thread.currentThread().isInterrupted()) {
 				if (nd.isConnected() && j.isChanged()) {
 					printByteArr(pdc.getByteArr());
 					try {
+						ui.setByteOutputColor(Color.GREEN);
 						nd.send(pdc.getByteArr());
+						ui.setByteOutput(pdc.getByteArrAsStr());
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -122,35 +184,7 @@ public class Launcher {
 		}
 
 	}
-	
-	
-	//code that tries to set up a connection to robot if none already exists
-	public static void attemptInitializeConnection(Joystick j, NetworkDaemon nd, PollDataConverter pdc, UserInterface ui) {
-		DEBUG_MODE = ui.getDebugMode();
-		TestServer server = new TestServer(PORT);
-		if(DEBUG_MODE) server.start();
-		connectionActivated = true;
-		try {
-			nd.connect(DEBUG_MODE);
-			// starts thread for periodic update
-			new Thread(new PeriodicUpdate(nd, pdc, ui)).start();
-			// starts thread for update on change
-			if (j != null) {
-				new Thread(new UpdateOnChange(j, nd, pdc, ui)).start();
-			}
-			ui.updateConnectionStatus(true);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			ui.addError("Robot Connection failure. Try again.");
-			connectionActivated = false;
-			if(DEBUG_MODE) server.interrupt(); 
-			
-		}
-		
-		ui.setAttemptConnection(false);
-		
-	}
+
 	// fancy method from stack overflow to properly print bytes
 	// to console
 

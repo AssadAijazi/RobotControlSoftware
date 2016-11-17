@@ -24,12 +24,12 @@ public class UserInterface {
 		frame.setContentPane(mainPanel);
 		frame.setVisible(true);
 	}
-	
-	//when there is a change in connection status, this method is called so
-	//the UI can respond appropriately
+
+	// when there is a change in connection status, this method is called so
+	// the UI can respond appropriately
 	public void updateConnectionStatus(boolean b) {
 		isConnected = b;
-		if(isConnected) {
+		if (isConnected) {
 			mainPanel.connectionPanel.status.setText("Connected");
 			mainPanel.connectionPanel.status.setForeground(Color.GREEN);
 			mainPanel.connectionPanel.mode.setEnabled(false);
@@ -37,6 +37,21 @@ public class UserInterface {
 		} else {
 			mainPanel.connectionPanel.mode.setEnabled(true);
 			mainPanel.connectionPanel.connect.setText("Connect");
+			mainPanel.connectionPanel.status.setText("Disconnected");
+			mainPanel.connectionPanel.status.setForeground(Color.RED);
+		}
+	}
+	
+	public void setByteOutput(String output) {
+		String topHalf = output.substring(0, output.length()/2 -1);
+		String bottomHalf = output.substring(output.length()/2, output.length() - 1);
+		mainPanel.connectionPanel.byteOutput[0].setText(topHalf);
+		mainPanel.connectionPanel.byteOutput[1].setText(bottomHalf);
+	}
+	
+	public void setByteOutputColor(Color c) {
+		for(int i = 0; i < mainPanel.connectionPanel.byteOutput.length; i++) {
+			mainPanel.connectionPanel.byteOutput[i].setForeground(c);
 		}
 	}
 
@@ -45,13 +60,21 @@ public class UserInterface {
 	}
 	// determines whether to attempt connection, based on whether the "connect"
 	// button has been pushed
-	
+
 	public boolean getAttemptConnection() {
 		return attemptConnection;
 	}
-	
+
 	public void setAttemptConnection(boolean b) {
 		attemptConnection = b;
+	}
+
+	public boolean getAttemptDisconnection() {
+		return attemptDisconnection;
+	}
+
+	public void setAttemptDisconnection(boolean b) {
+		attemptDisconnection = b;
 	}
 
 	public void addError(String error) {
@@ -104,6 +127,7 @@ public class UserInterface {
 
 		private class ConnectionPanel extends JPanel {
 			private JLabel title, status;
+			private JLabel[] byteOutput;
 			private JButton connect, mode;
 
 			private ConnectionPanel() {
@@ -111,27 +135,27 @@ public class UserInterface {
 				this.setBorder(new LineBorder(Color.BLACK));
 				this.setPreferredSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 3) / 4));
 				this.setMinimumSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 3) / 4));
-				
+
 				Dimension titleDim = new Dimension(80, 25);
 				Dimension compDim = new Dimension(80, 25);
-				Dimension panelDim = new Dimension(200, 30);
-				
+				Dimension panelDim = new Dimension(200, 25);
+
 				title = new JLabel("Connection");
 				title.setAlignmentX(CENTER_ALIGNMENT);
 				this.add(title);
-		
+
 				JPanel statusPanel = new JPanel();
 				JLabel statusTitle = new JLabel("Status: ");
 				statusTitle.setHorizontalAlignment(SwingConstants.RIGHT);
 				statusTitle.setPreferredSize(titleDim);
 				statusTitle.setMaximumSize(titleDim);
 				statusPanel.add(statusTitle);
-				
+
 				status = new JLabel("Disconnected");
 				status.setPreferredSize(compDim);
 				status.setMinimumSize(compDim);
 				status.setForeground(Color.RED);
-				
+
 				statusPanel.add(status);
 				statusPanel.setPreferredSize(panelDim);
 				statusPanel.setMaximumSize(panelDim);
@@ -144,12 +168,12 @@ public class UserInterface {
 				Dimension buttonDim = new Dimension(80, 25);
 				mode.setPreferredSize(buttonDim);
 				mode.setMinimumSize(buttonDim);
-				
-				//for toggling debug mode via debug button
+
+				// for toggling debug mode via debug button
 				mode.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						JButton source = (JButton)(e.getSource());
+						JButton source = (JButton) (e.getSource());
 						if (source.getText().equals("On")) {
 							source.setText("Off");
 							isDebug = false;
@@ -157,7 +181,7 @@ public class UserInterface {
 							source.setText("On");
 							isDebug = true;
 						}
-						
+
 					}
 
 				});
@@ -170,11 +194,12 @@ public class UserInterface {
 
 				connect = new JButton("Connect");
 				connect.setAlignmentX(CENTER_ALIGNMENT);
-				//action listener for the connect button; used for connecting and disconnecting
+				// action listener for the connect button; used for connecting
+				// and disconnecting
 				connect.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						if(isConnected) {
+						if (isConnected) {
 							attemptDisconnection = true;
 						} else {
 							attemptConnection = true;
@@ -183,6 +208,18 @@ public class UserInterface {
 				});
 
 				this.add(connect);
+
+				byteOutput = new JLabel[2];
+				for (int i = 0; i < byteOutput.length; i++) {
+					byteOutput[i] = new JLabel("00000000 00000000 00000000 00000000");
+					byteOutput[i].setFont(new Font(this.getFont().getFontName(), Font.BOLD, 20));
+					byteOutput[i].setAlignmentX(CENTER_ALIGNMENT);
+					byteOutput[i].setAlignmentY(BOTTOM_ALIGNMENT);
+					Dimension byteDim = new Dimension(400, 25);
+					byteOutput[i].setPreferredSize(byteDim);
+					byteOutput[i].setMinimumSize(byteDim);
+					this.add(byteOutput[i]);
+				}
 			}
 		}
 
@@ -210,7 +247,7 @@ public class UserInterface {
 			}
 
 			private void addError(String error) {
-				if (this.getComponentCount() > 7 ) {
+				if (this.getComponentCount() > 7) {
 					Component t = this.getComponent(0);
 					this.removeAll();
 					this.add(t);
@@ -219,7 +256,7 @@ public class UserInterface {
 				errorMsg.setAlignmentX(CENTER_ALIGNMENT);
 				errorMsg.setForeground(Color.RED);
 				this.add(errorMsg);
-				
+
 				this.repaint();
 				this.revalidate();
 			}

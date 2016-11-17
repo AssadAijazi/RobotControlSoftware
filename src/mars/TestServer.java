@@ -11,9 +11,10 @@ public class TestServer extends Thread {
 	public TestServer(int portNum) {
 		try {
 			serverSocket = new ServerSocket(portNum);
-			serverSocket.setSoTimeout(10000);
+			serverSocket.setSoTimeout(0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 	}
@@ -24,7 +25,7 @@ public class TestServer extends Thread {
 			server = serverSocket.accept();
 			
 			//test server receives byte array and prints it console
-			while (true) {
+			while (!Thread.currentThread().isInterrupted()) {
 				InputStream in = server.getInputStream();
 				byte[] input = new byte[8];
 				in.read(input, 0, input.length);
@@ -35,6 +36,13 @@ public class TestServer extends Thread {
 				}
 				System.out.println();
 			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		try {
+			serverSocket.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
