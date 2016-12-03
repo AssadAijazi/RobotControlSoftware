@@ -8,6 +8,7 @@ public class Launcher {
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 	public static final int PORT = 5565;
 	public static boolean connectionActivated = false;
+	public static boolean connectedToStick;
 	public static TestServer testServer;
 	public static PeriodicUpdate pu;
 	public static UpdateOnChange uoc;
@@ -18,9 +19,11 @@ public class Launcher {
 		Joystick j = null;
 		try {
 			j = new Joystick();
+			connectedToStick = true;
 		} catch (IOException e1) {
 			ui.addError(e1.toString());
 			System.err.println(e1);
+			connectedToStick = false;
 		}
 		// class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
@@ -57,6 +60,7 @@ public class Launcher {
 				}
 			}
 			output = new float[17];
+			
 			if (j != null) {
 
 				// updates joystick, receives raw data, then converts to byte
@@ -64,6 +68,7 @@ public class Launcher {
 				try {
 					j.update();
 				} catch (Exception e) {
+					connectedToStick = false;
 					ui.addError(e.toString());
 				}
 
@@ -71,6 +76,7 @@ public class Launcher {
 			} 
 			
 			pdc.convert(output);
+			ui.updateJoystickPanel(output, connectedToStick);
 		}
 
 	}

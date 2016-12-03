@@ -2,6 +2,7 @@ package mars;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Line2D;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
@@ -25,6 +26,21 @@ public class UserInterface {
 		frame.setVisible(true);
 	}
 
+	// updates section of panel relating to joystick panel
+
+	public void updateJoystickPanel(float[] pollData, boolean connectedToStick) {
+		if (connectedToStick) {
+			mainPanel.jsPanel.status = "Connected";
+			mainPanel.jsPanel.connected = true;
+		} else {
+			mainPanel.jsPanel.status = "Disconnected";
+			mainPanel.jsPanel.connected = false;
+		}
+		mainPanel.jsPanel.pollData = pollData;
+
+		mainPanel.jsPanel.repaint();
+	}
+
 	// when there is a change in connection status, this method is called so
 	// the UI can respond appropriately
 	public void updateConnectionStatus(boolean b) {
@@ -41,16 +57,16 @@ public class UserInterface {
 			mainPanel.connectionPanel.status.setForeground(Color.RED);
 		}
 	}
-	
+
 	public void setByteOutput(String output) {
-		String topHalf = output.substring(0, output.length()/2 -1);
-		String bottomHalf = output.substring(output.length()/2, output.length() - 1);
+		String topHalf = output.substring(0, output.length() / 2 - 1);
+		String bottomHalf = output.substring(output.length() / 2, output.length() - 1);
 		mainPanel.connectionPanel.byteOutput[0].setText(topHalf);
 		mainPanel.connectionPanel.byteOutput[1].setText(bottomHalf);
 	}
-	
+
 	public void setByteOutputColor(Color c) {
-		for(int i = 0; i < mainPanel.connectionPanel.byteOutput.length; i++) {
+		for (int i = 0; i < mainPanel.connectionPanel.byteOutput.length; i++) {
 			mainPanel.connectionPanel.byteOutput[i].setForeground(c);
 		}
 	}
@@ -224,12 +240,148 @@ public class UserInterface {
 		}
 
 		private class JSPanel extends JPanel {
+			private boolean connected;
+			private String status;
+			private float[] pollData;
+
 			private JSPanel() {
+				pollData = new float[17];
+				connected = false;
+				status = "Disconnected";
 				this.setBorder(new LineBorder(Color.BLACK));
-				this.add(new JLabel("Joystick"));
 				this.setPreferredSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
 				this.setMinimumSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
+
 			}
+
+			public void paintComponent(Graphics g) {
+				super.paintComponent(g);
+				g.setFont(new Font("Dialog", Font.BOLD, 12));
+				g.drawString("Joystick", this.getWidth() / 2 - 20, 15);
+				g.drawString("Status: ", this.getWidth() / 2 - 55, 40);
+				if (connected) {
+					g.setColor(Color.GREEN);
+				} else {
+					g.setColor(Color.RED);
+				}
+				g.drawString(status, this.getWidth() / 2 - 5, 40);
+				renderButtons(g, 10, 0);
+				renderPOVIndicator(g, 50, 195, pollData[2], "POV");
+				renderJoyStickIndicator(g, 250, 10, pollData[1], pollData[0], "Main Stick");
+				renderThrottleIndicator(g, 170, 195, pollData[12], "Throttle");
+				renderRZIndicator(g, 300, 195, pollData[3], "Z Rotation");
+			}
+
+			private void renderButtons(Graphics g, int x, int y) {
+				g.setFont(new Font("Dialog", Font.BOLD, 15));
+
+				for (int i = 1; i < 7; i++) {
+					g.setColor(Color.BLACK);
+					g.drawString("Button " + i, x, y + 30 * i);
+					if (pollData[i + 3] == 1.0f) {
+						g.setColor(Color.GREEN);
+					} else {
+						g.setColor(Color.BLACK);
+					}
+					g.fillOval(x + 70, y - 17 + 30 * i, 20, 20);
+					g.setColor(Color.BLACK);
+					g.drawString("Button " + (6 + i), x + 120, y + 30 * i);
+					// to get around the index of the slider
+					if (i + 3 + 6 >= 12) {
+						if (pollData[i + 3 + 7] == 1.0f) {
+							g.setColor(Color.GREEN);
+						} else {
+							g.setColor(Color.BLACK);
+						}
+					} else {
+						if (pollData[i + 3 + 6] == 1.0f) {
+							g.setColor(Color.GREEN);
+						} else {
+							g.setColor(Color.BLACK);
+						}
+					}
+
+					g.fillOval(x + 190, y - 17 + 30 * i, 20, 20);
+				}
+
+			}
+		}
+
+		private void renderPOVIndicator(Graphics g, int x, int y, double pov, String label) {
+			double jx, jy;
+			if (pov == 0.0f) {
+				jx = 0;
+				jy = 0;
+			} else {
+				jx = Math.cos(2 * Math.PI * pov + Math.PI);
+				jy = Math.sin(2 * Math.PI * pov + Math.PI);
+			}
+			int jlength = 20;
+			int boxsize = 60;
+			g.setColor(Color.BLACK);
+			g.fillRect(x + 3, y + 3, boxsize, boxsize);
+			g.setColor(new Color(127, 127, 127));
+			g.fillRect(x, y, boxsize, boxsize);
+			g.setColor(new Color(220, 220, 220));
+			g.drawLine(x + (boxsize / 2), y + (boxsize / 2), (int) ((x + (boxsize / 2)) + jx * (jlength)),
+					(int) ((y + (boxsize / 2)) + jy * (jlength)));
+			g.fillOval((int) ((x + (boxsize / 2)) + jx * (jlength)) - 18,
+					(int) ((y + (boxsize / 2)) + jy * (jlength)) - 18, 36, 36);
+			g.setColor(Color.BLACK);
+			g.drawString(label, x + boxsize / 4, y + (boxsize + 20));
+
+		}
+		
+		private void renderJoyStickIndicator(Graphics g, int x, int y, float jx, float jy, String label){
+			int jlength = 40;
+			int boxsize=150;
+			g.setColor(Color.BLACK);
+			g.fillRect(x+3, y+3, boxsize, boxsize);
+			g.setColor(new Color(127,127,127));
+			g.fillRect(x, y, boxsize, boxsize);
+			g.setColor(Color.WHITE);
+			g.drawLine(x+(boxsize/2), y+(boxsize/2), (int)((x+(boxsize/2))+jx*(jlength)), (int)((y+(boxsize/2))+jy*(jlength)));
+			g.fillOval((int)((x+(boxsize/2))+jx*(jlength))-40, (int)((y+(boxsize/2))+jy*(jlength))-40, 80, 80);
+			g.setColor(Color.BLACK);
+			g.drawString(label,x + boxsize / 4,y+(boxsize+20));	
+			
+		}
+		
+		private void renderThrottleIndicator(Graphics g, int x, int y, float slider, String label) {
+			double jx = Math.cos(-1 * Math.PI/4 *slider + Math.PI/2);
+			double jy = Math.sin(-1 * Math.PI/4 *slider + Math.PI/2);;
+			int jlength = 35;
+			int boxsize = 60;
+			g.setColor(Color.BLACK);
+			g.fillRect(x + 3, y + 3, boxsize, boxsize);
+			g.setColor(new Color(127, 127, 127));
+			g.fillRect(x, y, boxsize, boxsize);
+			g.setColor(new Color(220, 220, 220));
+			Graphics2D g2 = (Graphics2D) g;
+			g2.setStroke(new BasicStroke(5));
+			g2.draw(new Line2D.Double(x + (boxsize / 2), y + boxsize - 4, (jx * jlength + x + boxsize/2),
+					(-jy *jlength + y + boxsize -4 )));
+			g.fillOval(x + (boxsize/2 - 8), y + boxsize - 16, 16, 16);
+			g.setColor(Color.BLACK);
+			g.drawString(label, x + boxsize / 12, y + (boxsize + 20));
+		}
+		
+		private void renderRZIndicator(Graphics g, int x, int y, float rz, String label) {
+			double jx = Math.cos(-1 * Math.PI/4 *rz + Math.PI/2);
+			double jy = Math.sin(-1 * Math.PI/4 *rz + Math.PI/2);;
+			int jlength = 35;
+			int boxsize = 60;
+			g.setColor(Color.BLACK);
+			g.fillRect(x + 3, y + 3, boxsize, boxsize);
+			g.setColor(new Color(127, 127, 127));
+			g.fillRect(x, y, boxsize, boxsize);
+			g.setColor(Color.WHITE);
+			Graphics2D g2 = (Graphics2D) g;
+			g2.setStroke(new BasicStroke(5));
+			g2.draw(new Line2D.Double(x + (boxsize / 2), y + boxsize - 4, (jx * jlength + x + boxsize/2),
+					(-jy *jlength + y + boxsize -4 )));
+			g.setColor(Color.BLACK);
+			g.drawString(label, x + boxsize / 12, y + (boxsize + 20));
 		}
 
 		private class ErrorPanel extends JPanel {
@@ -256,8 +408,6 @@ public class UserInterface {
 				errorMsg.setAlignmentX(CENTER_ALIGNMENT);
 				errorMsg.setForeground(Color.RED);
 				this.add(errorMsg);
-
-				this.repaint();
 				this.revalidate();
 			}
 		}
