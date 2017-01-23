@@ -4,9 +4,9 @@ import java.awt.Color;
 import java.io.IOException;
 
 public class Launcher {
-	public static boolean DEBUG_MODE;
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 	public static final int PORT = 5565;
+	public static boolean isDebugMode;
 	public static boolean connectionActivated = false;
 	public static boolean connectedToStick;
 	public static TestServer testServer;
@@ -31,9 +31,10 @@ public class Launcher {
 		String hostname = ROBOT_DEFAULT_ADDRESS;
 		NetworkDaemon nd = new NetworkDaemon(hostname, PORT);
 
-		// initial poll of the controller
-		float[] output = new float[17];
+		// class for managing keyboard input
+		KeyboardHandler kbHandler = ui.getKeyboardhandler();
 
+		float[] output = new float[17];
 		// main loop
 		while (true) {
 
@@ -47,11 +48,11 @@ public class Launcher {
 				// checks if disconnect button has been pushed
 				if (ui.getAttemptDisconnection()) {
 					pu.interrupt();
-					if(uoc != null) {
-					 uoc.interrupt();
+					if (uoc != null) {
+						uoc.interrupt();
 					}
-					if( testServer != null) {
-					 testServer.interrupt();
+					if (testServer != null) {
+						testServer.interrupt();
 					}
 					connectionActivated = false;
 					ui.updateConnectionStatus(false);
@@ -60,7 +61,7 @@ public class Launcher {
 				}
 			}
 			output = new float[17];
-			
+
 			if (j != null) {
 
 				// updates joystick, receives raw data, then converts to byte
@@ -73,35 +74,41 @@ public class Launcher {
 				}
 
 				output = j.getRawPollData();
-			} 
-			
+
+			}
+			//uses keyboard as input source if in keyboard mode
+			if (ui.getIsKB()) {
+				kbHandler.update();
+				output = kbHandler.getRawPollData();
+			}
 			pdc.convert(output);
 			ui.updateJoystickPanel(output, connectedToStick);
 		}
 
 	}
 
-	// code that tries to set up a connection to robot/test server if none already exists
+	// code that tries to set up a connection to robot/test server if none
+	// already exists
 	public static void attemptInitializeConnection(Joystick j, NetworkDaemon nd, PollDataConverter pdc,
 			UserInterface ui) {
-		DEBUG_MODE = ui.getDebugMode();
+		isDebugMode = ui.getDebugMode();
 
 		connectionActivated = true;
-		if (DEBUG_MODE) {
+		if (isDebugMode) {
 			testServer = new TestServer(PORT);
 			testServer.start();
 		}
 		try {
-			nd.connect(DEBUG_MODE);
+			nd.connect(isDebugMode);
 
 			// starts thread for periodic update
 			pu = new PeriodicUpdate(nd, pdc, ui);
 			pu.start();
 			// starts thread for update on change
-			if (j != null) {
+			//if (j != null) {
 				uoc = new UpdateOnChange(j, nd, pdc, ui);
 				uoc.start();
-			}
+			//}
 			ui.updateConnectionStatus(true);
 
 		} catch (Exception e) {
@@ -152,7 +159,7 @@ public class Launcher {
 					}
 				}
 			}
-			
+
 		}
 	}
 
@@ -162,19 +169,21 @@ public class Launcher {
 		NetworkDaemon nd;
 		PollDataConverter pdc;
 		UserInterface ui;
+		KeyboardHandler kbHandler;
 
 		public UpdateOnChange(Joystick joy, NetworkDaemon net, PollDataConverter poll, UserInterface u) {
 			j = joy;
 			nd = net;
 			pdc = poll;
 			ui = u;
+			kbHandler = ui.getKeyboardhandler();
 		}
 
 		@Override
 		public void run() {
 			while (!Thread.currentThread().isInterrupted()) {
-				if (nd.isConnected() && j.isChanged()) {
-					printByteArr(pdc.getByteArr());
+				//should probably make this statement clearer...
+				if ((nd.isConnected() && ui.getIsKB() && kbHandler.isChanged()) ||(nd.isConnected() && (j != null) && (!ui.getIsKB()) && j.isChanged())) {
 					try {
 						ui.setByteOutputColor(Color.GREEN);
 						nd.send(pdc.getByteArr());
@@ -195,7 +204,7 @@ public class Launcher {
 	// to console
 
 	public static void printByteArr(byte[] byteOutput) {
-		if (!DEBUG_MODE) {
+		if (!isDebugMode) {
 			System.out.print("Sent: ");
 			for (int i = 0; i < byteOutput.length; i++) {
 				String formattedByteArr = String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256))

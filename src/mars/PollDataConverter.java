@@ -22,6 +22,7 @@ public class PollDataConverter {
 			B10 = 14, B11 = 15, B12 = 16;
 
 	public PollDataConverter() {
+		rawPollData = new float[17];
 		convertedPollData = new byte[8];
 
 		// used to check number of bytes

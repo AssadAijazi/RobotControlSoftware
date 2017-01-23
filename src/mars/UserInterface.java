@@ -7,6 +7,9 @@ import java.awt.geom.Line2D;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 
+//Code that runs the user interface it consists of a JFrame, and JPanel MainPanel/
+//Main panel is further divided up into 4 seperate panels: ConnnectionPanel,
+//JoystickPanel, ErrorPanel, and CameraPanel.
 public class UserInterface {
 	private static final int XWIDTH = 1500;
 	private static final int YHEIGHT = 600;
@@ -15,13 +18,22 @@ public class UserInterface {
 	private boolean attemptDisconnection = false;
 	private boolean isDebug = false;
 	private boolean isConnected = false;
+	private boolean isKB = false;
+	private float[] kbOutput;
+	private KeyboardHandler kbHandler;
+	private static final float TITLEFONTSIZE = 20.0f;
+	private static final float FONTSIZE = 17.0f;
 
+	// loads up the frame on to screen and sets the panel as MainPanel
 	public UserInterface() {
+		//used for output if 
+		kbOutput = new float[17];
 		JFrame frame = new JFrame("Robot Control Software");
 		frame.setSize(XWIDTH, YHEIGHT);
 		frame.setLocationRelativeTo(null);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		mainPanel = new MainPanel();
+		kbHandler = new KeyboardHandler(mainPanel);
 		frame.setContentPane(mainPanel);
 		frame.setVisible(true);
 	}
@@ -58,43 +70,64 @@ public class UserInterface {
 		}
 	}
 
+	// updates the bytes displayed on the ConnectionPanel
 	public void setByteOutput(String output) {
+		// split up the byte output into to two rows of 4 bytes each
 		String topHalf = output.substring(0, output.length() / 2 - 1);
 		String bottomHalf = output.substring(output.length() / 2, output.length() - 1);
 		mainPanel.connectionPanel.byteOutput[0].setText(topHalf);
 		mainPanel.connectionPanel.byteOutput[1].setText(bottomHalf);
 	}
 
+	// updates the color of the text of the byte output on the connection panel.
+	// Used for the flashing effect when a new byte array is sent.
 	public void setByteOutputColor(Color c) {
 		for (int i = 0; i < mainPanel.connectionPanel.byteOutput.length; i++) {
 			mainPanel.connectionPanel.byteOutput[i].setForeground(c);
 		}
 	}
 
+	// determines whether debug mode should be turned on based
+	// on if the debug mode is "on" or "off" in the connection panel
 	public boolean getDebugMode() {
 		return isDebug;
 	}
 	// determines whether to attempt connection, based on whether the "connect"
-	// button has been pushed
+	// button has been pushed in the connection panel
 
 	public boolean getAttemptConnection() {
 		return attemptConnection;
 	}
 
+	// switches whether to attempt connection to boolean b
 	public void setAttemptConnection(boolean b) {
 		attemptConnection = b;
 	}
 
+	// if the connection is live, determines whether to attempt to disconnect
+	// based on if the "disconnect" button is pushed
 	public boolean getAttemptDisconnection() {
 		return attemptDisconnection;
 	}
 
+	// sets whether to attempt disconnection to boolean b
 	public void setAttemptDisconnection(boolean b) {
 		attemptDisconnection = b;
 	}
+	
+	//gets whether in keyboard mode
+	public boolean getIsKB() {
+		return isKB;
+	}
 
+	// adds error messages to the error panel
 	public void addError(String error) {
 		mainPanel.errorPanel.addError(error);
+	}
+	
+	//returns the keyboard handler for handling keyboard input
+	public KeyboardHandler getKeyboardhandler() {
+		return kbHandler;
 	}
 
 	private class MainPanel extends JPanel {
@@ -103,7 +136,9 @@ public class UserInterface {
 		private ErrorPanel errorPanel;
 		private CameraPanel cameraPanel;
 
-		// sets up framework for UI
+		// sets up framework for Main Panel using the layout manager
+		// GridBagLayout
+		// The layout sets out the 4 panels based on the defined proportions
 		private MainPanel() {
 			this.setLayout(new GridBagLayout());
 			GridBagConstraints c = new GridBagConstraints();
@@ -139,8 +174,16 @@ public class UserInterface {
 			c.gridwidth = 3;
 			c.gridheight = 3;
 			this.add(cameraPanel, c);
+			
+			//sets up the key binding for keyboard input
+			//keyboard binding for buttons
+			
+			
 		}
 
+		// panel used for connection aspects, including connecting,
+		// disconnecting,
+		// connection status, and byte output.
 		private class ConnectionPanel extends JPanel {
 			private JLabel title, status;
 			private JLabel[] byteOutput;
@@ -153,21 +196,24 @@ public class UserInterface {
 				this.setMinimumSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 3) / 4));
 
 				Dimension titleDim = new Dimension(80, 25);
-				Dimension compDim = new Dimension(80, 25);
-				Dimension panelDim = new Dimension(200, 25);
+				Dimension compDim = new Dimension(120, 25);
+				Dimension panelDim = new Dimension(220, 40);
 
 				title = new JLabel("Connection");
+				title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
 				title.setAlignmentX(CENTER_ALIGNMENT);
 				this.add(title);
 
 				JPanel statusPanel = new JPanel();
 				JLabel statusTitle = new JLabel("Status: ");
+				statusTitle.setFont(statusTitle.getFont().deriveFont(FONTSIZE));
 				statusTitle.setHorizontalAlignment(SwingConstants.RIGHT);
 				statusTitle.setPreferredSize(titleDim);
 				statusTitle.setMaximumSize(titleDim);
 				statusPanel.add(statusTitle);
 
 				status = new JLabel("Disconnected");
+				status.setFont(status.getFont().deriveFont(FONTSIZE));
 				status.setPreferredSize(compDim);
 				status.setMinimumSize(compDim);
 				status.setForeground(Color.RED);
@@ -179,6 +225,7 @@ public class UserInterface {
 
 				JPanel debug = new JPanel();
 				JLabel debugTitle = new JLabel("Debug Mode: ");
+				debugTitle.setFont(debugTitle.getFont().deriveFont(FONTSIZE));
 				debug.add(debugTitle);
 				mode = new JButton("Off");
 				Dimension buttonDim = new Dimension(80, 25);
@@ -202,7 +249,7 @@ public class UserInterface {
 
 				});
 				debug.add(mode);
-				Dimension debugDim = new Dimension(200, 40);
+				Dimension debugDim = panelDim;
 				debug.setPreferredSize(debugDim);
 				debug.setMaximumSize(debugDim);
 
@@ -228,7 +275,7 @@ public class UserInterface {
 				byteOutput = new JLabel[2];
 				for (int i = 0; i < byteOutput.length; i++) {
 					byteOutput[i] = new JLabel("00000000 00000000 00000000 00000000");
-					byteOutput[i].setFont(new Font(this.getFont().getFontName(), Font.BOLD, 20));
+					byteOutput[i].setFont(byteOutput[i].getFont().deriveFont(FONTSIZE));
 					byteOutput[i].setAlignmentX(CENTER_ALIGNMENT);
 					byteOutput[i].setAlignmentY(BOTTOM_ALIGNMENT);
 					Dimension byteDim = new Dimension(400, 25);
@@ -239,6 +286,9 @@ public class UserInterface {
 			}
 		}
 
+		// displays all of the joystick aspects, including joystick connection
+		// status
+		// and visuals for all of the components
 		private class JSPanel extends JPanel {
 			private boolean connected;
 			private String status;
@@ -251,23 +301,75 @@ public class UserInterface {
 				this.setBorder(new LineBorder(Color.BLACK));
 				this.setPreferredSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
 				this.setMinimumSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
+				this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+				Dimension titleDim = new Dimension(80, 25);
+				Dimension compDim = new Dimension(120, 25);
+				Dimension panelDim = new Dimension(220, 40);
+
+				JLabel title = new JLabel("Joystick");
+				title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
+				title.setAlignmentX(CENTER_ALIGNMENT);
+				this.add(title);
+
+				JPanel statusPanel = new JPanel();
+				JLabel statusTitle = new JLabel("Status: ");
+				statusTitle.setFont(statusTitle.getFont().deriveFont(FONTSIZE));
+				statusTitle.setHorizontalAlignment(SwingConstants.RIGHT);
+				statusTitle.setPreferredSize(titleDim);
+				statusTitle.setMaximumSize(titleDim);
+				statusPanel.add(statusTitle);
+
+				JLabel connectionStatus = new JLabel("Disconnected");
+				connectionStatus.setFont(connectionStatus.getFont().deriveFont(FONTSIZE));
+				connectionStatus.setPreferredSize(compDim);
+				connectionStatus.setMinimumSize(compDim);
+				connectionStatus.setForeground(Color.RED);
+
+				statusPanel.add(connectionStatus);
+				statusPanel.setPreferredSize(panelDim);
+				statusPanel.setMaximumSize(panelDim);
+				this.add(statusPanel);
+
+				JPanel kbMode = new JPanel();
+				JLabel kbTitle = new JLabel("Keyboard Mode: ");
+				kbTitle.setFont(kbTitle.getFont().deriveFont(FONTSIZE));
+				kbMode.add(kbTitle);
+				JButton mode = new JButton("Off");
+				Dimension buttonDim = new Dimension(80, 25);
+				mode.setPreferredSize(buttonDim);
+				mode.setMinimumSize(buttonDim);
+				//for toggling keyboard mode
+				mode.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						JButton source = (JButton) (e.getSource());
+						if (source.getText().equals("On")) {
+							source.setText("Off");
+							isKB = false;
+						} else {
+							source.setText("On");
+							isKB = true;
+						}
+
+					}
+
+				});
+				kbMode.add(mode);
+				Dimension kbDim = new Dimension(225, 40);
+				kbMode.setPreferredSize(kbDim);
+				kbMode.setMaximumSize(kbDim);
+
+				this.add(kbMode);
+				
+				
 
 			}
 
 			public void paintComponent(Graphics g) {
 				super.paintComponent(g);
-				g.setFont(new Font("Dialog", Font.BOLD, 12));
-				g.drawString("Joystick", this.getWidth() / 2 - 20, 15);
-				g.drawString("Status: ", this.getWidth() / 2 - 55, 40);
-				if (connected) {
-					g.setColor(Color.GREEN);
-				} else {
-					g.setColor(Color.RED);
-				}
-				g.drawString(status, this.getWidth() / 2 - 5, 40);
 				renderButtons(g, 10, 0);
 				renderPOVIndicator(g, 50, 195, pollData[2], "POV");
-				renderJoyStickIndicator(g, 250, 10, pollData[1], pollData[0], "Main Stick");
+				renderJoyStickIndicator(g, 230, 10, pollData[1], pollData[0], "Main Stick");
 				renderThrottleIndicator(g, 170, 195, pollData[12], "Throttle");
 				renderRZIndicator(g, 300, 195, pollData[3], "Z Rotation");
 			}
@@ -331,25 +433,28 @@ public class UserInterface {
 			g.drawString(label, x + boxsize / 4, y + (boxsize + 20));
 
 		}
-		
-		private void renderJoyStickIndicator(Graphics g, int x, int y, float jx, float jy, String label){
+
+		private void renderJoyStickIndicator(Graphics g, int x, int y, float jx, float jy, String label) {
 			int jlength = 40;
-			int boxsize=150;
+			int boxsize = 140;
 			g.setColor(Color.BLACK);
-			g.fillRect(x+3, y+3, boxsize, boxsize);
-			g.setColor(new Color(127,127,127));
+			g.fillRect(x + 3, y + 3, boxsize, boxsize);
+			g.setColor(new Color(127, 127, 127));
 			g.fillRect(x, y, boxsize, boxsize);
 			g.setColor(Color.WHITE);
-			g.drawLine(x+(boxsize/2), y+(boxsize/2), (int)((x+(boxsize/2))+jx*(jlength)), (int)((y+(boxsize/2))+jy*(jlength)));
-			g.fillOval((int)((x+(boxsize/2))+jx*(jlength))-40, (int)((y+(boxsize/2))+jy*(jlength))-40, 80, 80);
+			g.drawLine(x + (boxsize / 2), y + (boxsize / 2), (int) ((x + (boxsize / 2)) + jx * (jlength)),
+					(int) ((y + (boxsize / 2)) + jy * (jlength)));
+			g.fillOval((int) ((x + (boxsize / 2)) + jx * (jlength)) - 40,
+					(int) ((y + (boxsize / 2)) + jy * (jlength)) - 40, 80, 80);
 			g.setColor(Color.BLACK);
-			g.drawString(label,x + boxsize / 4,y+(boxsize+20));	
-			
+			g.drawString(label, x + boxsize / 4, y + (boxsize + 20));
+
 		}
-		
+
 		private void renderThrottleIndicator(Graphics g, int x, int y, float slider, String label) {
-			double jx = Math.cos(-1 * Math.PI/4 *slider + Math.PI/2);
-			double jy = Math.sin(-1 * Math.PI/4 *slider + Math.PI/2);;
+			double jx = Math.cos(-1 * Math.PI / 4 * slider + Math.PI / 2);
+			double jy = Math.sin(-1 * Math.PI / 4 * slider + Math.PI / 2);
+			;
 			int jlength = 35;
 			int boxsize = 60;
 			g.setColor(Color.BLACK);
@@ -359,16 +464,17 @@ public class UserInterface {
 			g.setColor(new Color(220, 220, 220));
 			Graphics2D g2 = (Graphics2D) g;
 			g2.setStroke(new BasicStroke(5));
-			g2.draw(new Line2D.Double(x + (boxsize / 2), y + boxsize - 4, (jx * jlength + x + boxsize/2),
-					(-jy *jlength + y + boxsize -4 )));
-			g.fillOval(x + (boxsize/2 - 8), y + boxsize - 16, 16, 16);
+			g2.draw(new Line2D.Double(x + (boxsize / 2), y + boxsize - 4, (jx * jlength + x + boxsize / 2),
+					(-jy * jlength + y + boxsize - 4)));
+			g.fillOval(x + (boxsize / 2 - 8), y + boxsize - 16, 16, 16);
 			g.setColor(Color.BLACK);
 			g.drawString(label, x + boxsize / 12, y + (boxsize + 20));
 		}
-		
+
 		private void renderRZIndicator(Graphics g, int x, int y, float rz, String label) {
-			double jx = Math.cos(-1 * Math.PI/4 *rz + Math.PI/2);
-			double jy = Math.sin(-1 * Math.PI/4 *rz + Math.PI/2);;
+			double jx = Math.cos(-1 * Math.PI / 4 * rz + Math.PI / 2);
+			double jy = Math.sin(-1 * Math.PI / 4 * rz + Math.PI / 2);
+			;
 			int jlength = 35;
 			int boxsize = 60;
 			g.setColor(Color.BLACK);
@@ -378,14 +484,14 @@ public class UserInterface {
 			g.setColor(Color.WHITE);
 			Graphics2D g2 = (Graphics2D) g;
 			g2.setStroke(new BasicStroke(5));
-			g2.draw(new Line2D.Double(x + (boxsize / 2), y + boxsize - 4, (jx * jlength + x + boxsize/2),
-					(-jy *jlength + y + boxsize -4 )));
+			g2.draw(new Line2D.Double(x + (boxsize / 2), y + boxsize - 4, (jx * jlength + x + boxsize / 2),
+					(-jy * jlength + y + boxsize - 4)));
 			g.setColor(Color.BLACK);
 			g.drawString(label, x + boxsize / 12, y + (boxsize + 20));
 		}
 
+		// panel for displaying all error messages
 		private class ErrorPanel extends JPanel {
-			JLabel title;
 
 			private ErrorPanel() {
 				this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -393,13 +499,16 @@ public class UserInterface {
 				this.setPreferredSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 1) / 4));
 				this.setMinimumSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 1) / 4));
 
-				title = new JLabel("Error Log");
+				JLabel title = new JLabel("Error Log");
+				title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
+
 				title.setAlignmentX(CENTER_ALIGNMENT);
 				this.add(title);
 			}
 
+			// adds error to the panel
 			private void addError(String error) {
-				if (this.getComponentCount() > 7) {
+				if (this.getComponentCount() > 6) {
 					Component t = this.getComponent(0);
 					this.removeAll();
 					this.add(t);
@@ -408,13 +517,19 @@ public class UserInterface {
 				errorMsg.setAlignmentX(CENTER_ALIGNMENT);
 				errorMsg.setForeground(Color.RED);
 				this.add(errorMsg);
+				this.repaint();
 				this.revalidate();
 			}
 		}
 
+		// displays all aspects of the Camera Panel
 		private class CameraPanel extends JPanel {
+			JLabel title;
+
 			private CameraPanel() {
-				this.add(new JLabel("Camera"));
+				title = new JLabel("Camera");
+				title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
+				this.add(title);
 				this.setBorder(new LineBorder(Color.BLACK));
 				this.setPreferredSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
 				this.setMinimumSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
