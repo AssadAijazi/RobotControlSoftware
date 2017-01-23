@@ -6,8 +6,8 @@ import java.io.IOException;
 public class Launcher {
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 	public static final int PORT = 5565;
-	public static boolean isDebugMode;
-	public static boolean connectionActivated = false;
+	public static boolean isDebugMode; 
+	public static boolean connectionActivated;
 	public static boolean connectedToStick;
 	public static TestServer testServer;
 	public static PeriodicUpdate pu;
