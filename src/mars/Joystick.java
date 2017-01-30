@@ -63,7 +63,6 @@ public class Joystick {
 			Controller[] ca = ControllerEnvironment.getDefaultEnvironment().getControllers();
 			for (int i = 0; i < ca.length; i++) {
 				if (ca[i].getType().equals(Controller.Type.STICK)) {
-					System.out.println("Joystick found");
 					connected = true;
 					joystick = ca[i];
 					components = joystick.getComponents();

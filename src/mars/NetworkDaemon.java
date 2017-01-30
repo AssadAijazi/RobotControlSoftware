@@ -18,14 +18,14 @@ public class NetworkDaemon {
 	// connects to robot
 	public void connect(boolean isDebug) throws Exception {
 		String connectAddress;
-		if(isDebug) {
+		if (isDebug) {
 			connectAddress = debugServerName;
 		} else {
 			connectAddress = serverName;
 		}
 		try {
 			connection = new Socket();
-			connection.connect(new InetSocketAddress(connectAddress,port),1000);
+			connection.connect(new InetSocketAddress(connectAddress, port), 1000);
 		} catch (Exception e) {
 			throw e;
 		}
@@ -40,15 +40,16 @@ public class NetworkDaemon {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}else{
-			throw new Exception("Connection interrupted. Restart");
+		} else {
+			throw new Exception("No connection found. Connect and try again");
 		}
 	}
-	//determines if is connected (accessor method for socket)
-	public boolean isConnected(){
+
+	// determines if is connected (accessor method for socket)
+	public boolean isConnected() {
 		return !connection.isClosed();
 	}
-	
+
 	public void disconnect() {
 		try {
 			connection.close();

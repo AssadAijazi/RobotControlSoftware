@@ -15,7 +15,7 @@ public class KeyboardHandler {
 	private static final int RIGHT = 3;
 	private static final int Y = 0;
 	private static final int X = 1;
-	private static final float SPEED = 0.000025f; //controls how fast the joystick moves
+	private static final float SPEED = 0.0002f; //controls how fast the joystick moves
 	private static Map<String, Integer> pollDataArrIndexMap;
 
 	public KeyboardHandler(JComponent parent) {
@@ -38,7 +38,7 @@ public class KeyboardHandler {
 		}
 
 		// sets up key bindings
-		InputMap inputMap = parent.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+		InputMap inputMap = parent.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 		ActionMap actionMap = parent.getActionMap();
 		setButtonKeyBinding(inputMap, actionMap);
 		setJoystickKeyBinding(inputMap, actionMap);
@@ -52,6 +52,16 @@ public class KeyboardHandler {
 		updateButtons();
 		updateJoystick();
 
+	}
+	
+	public void clear() {
+		for(int i = 0; i < buttonStates.length; i++) {
+			buttonStates[i] = false;
+		}
+		for(int i = 0; i < arrowKeyStates.length; i++) {
+			arrowKeyStates[i] = false;
+		}
+		update();
 	}
 
 	private void updateButtons() {

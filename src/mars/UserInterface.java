@@ -8,11 +8,11 @@ import javax.swing.*;
 import javax.swing.border.LineBorder;
 
 //Code that runs the user interface it consists of a JFrame, and JPanel MainPanel/
-//Main panel is further divided up into 4 seperate panels: ConnnectionPanel,
+//Main panel is further divided up into 4 seperate panels: ConnnectionPanel,k
 //JoystickPanel, ErrorPanel, and CameraPanel.
 public class UserInterface {
 	private static final int XWIDTH = 1500;
-	private static final int YHEIGHT = 600;
+	private static final int YHEIGHT = 700;
 	private MainPanel mainPanel;
 	private boolean attemptConnection = false;
 	private boolean attemptDisconnection = false;
@@ -23,17 +23,20 @@ public class UserInterface {
 	private KeyboardHandler kbHandler;
 	private static final float TITLEFONTSIZE = 20.0f;
 	private static final float FONTSIZE = 17.0f;
+	private NetworkDaemon nd;
 
 	// loads up the frame on to screen and sets the panel as MainPanel
-	public UserInterface() {
-		//used for output if 
+	public UserInterface(NetworkDaemon n) {
+		nd = n;
+		// used as output for keyboard mode
 		kbOutput = new float[17];
 		JFrame frame = new JFrame("Robot Control Software");
 		frame.setSize(XWIDTH, YHEIGHT);
 		frame.setLocationRelativeTo(null);
+		frame.setResizable(false);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		mainPanel = new MainPanel();
-		kbHandler = new KeyboardHandler(mainPanel);
+		kbHandler = new KeyboardHandler(mainPanel.jsPanel);
 		frame.setContentPane(mainPanel);
 		frame.setVisible(true);
 	}
@@ -42,10 +45,12 @@ public class UserInterface {
 
 	public void updateJoystickPanel(float[] pollData, boolean connectedToStick) {
 		if (connectedToStick) {
-			mainPanel.jsPanel.status = "Connected";
+			mainPanel.jsPanel.connectionStatus.setForeground(Color.GREEN);
+			mainPanel.jsPanel.connectionStatus.setText("Connected");
 			mainPanel.jsPanel.connected = true;
 		} else {
-			mainPanel.jsPanel.status = "Disconnected";
+			mainPanel.jsPanel.connectionStatus.setForeground(Color.RED);
+			mainPanel.jsPanel.connectionStatus.setText("Disconnected");
 			mainPanel.jsPanel.connected = false;
 		}
 		mainPanel.jsPanel.pollData = pollData;
@@ -114,8 +119,8 @@ public class UserInterface {
 	public void setAttemptDisconnection(boolean b) {
 		attemptDisconnection = b;
 	}
-	
-	//gets whether in keyboard mode
+
+	// gets whether in keyboard mode
 	public boolean getIsKB() {
 		return isKB;
 	}
@@ -125,7 +130,12 @@ public class UserInterface {
 		mainPanel.errorPanel.addError(error);
 	}
 	
-	//returns the keyboard handler for handling keyboard input
+	//adds normal message to the console
+	public void addMessage(String m) {
+		mainPanel.errorPanel.addMessage(m);
+	}
+
+	// returns the keyboard handler for handling keyboard input
 	public KeyboardHandler getKeyboardhandler() {
 		return kbHandler;
 	}
@@ -142,46 +152,52 @@ public class UserInterface {
 		private MainPanel() {
 			this.setLayout(new GridBagLayout());
 			GridBagConstraints c = new GridBagConstraints();
+			int totalGridWidth = 3;
+			int totalGridHeight = 6;
 
 			// Top Left Panel
 			connectionPanel = new ConnectionPanel();
+
 			c.gridx = 0;
 			c.gridy = 0;
 			c.gridwidth = 1;
-			c.gridheight = 3;
+			c.gridheight = 2;
+			setFinalSize(connectionPanel, (XWIDTH * 1) / totalGridWidth, (YHEIGHT * 2) / totalGridHeight);
 			this.add(connectionPanel, c);
-
 			// Top Right Panel
 			jsPanel = new JSPanel();
 			c.gridx = 1;
 			c.gridy = 0;
-			c.gridwidth = 3;
-			c.gridheight = 2;
+			c.gridwidth = 2;
+			c.gridheight = 3;
+			setFinalSize(jsPanel, (XWIDTH * 2) / totalGridWidth, (YHEIGHT * 3) / totalGridHeight);
 			this.add(jsPanel, c);
 
 			// Bottom Left Panel
 			errorPanel = new ErrorPanel();
 			c.gridx = 0;
-			c.gridy = 3;
+			c.gridy = 2;
 			c.gridwidth = 1;
-			c.gridheight = 1;
+			c.gridheight = 4;
+			setFinalSize(errorPanel, (XWIDTH * 1) / totalGridWidth, (YHEIGHT * 4) / totalGridHeight);
 			this.add(errorPanel, c);
 
 			// Bottom Right Panel
 			cameraPanel = new CameraPanel();
 			c.gridx = 1;
-			c.gridy = 2;
+			c.gridy = 3;
 			c.gridwidth = 3;
 			c.gridheight = 3;
+			setFinalSize(cameraPanel, (XWIDTH * 2) / totalGridWidth, (YHEIGHT * 3) / totalGridHeight);
 			this.add(cameraPanel, c);
-			
-			//sets up the key binding for keyboard input
-			//keyboard binding for buttons
-			
-			
 		}
 
-		// panel used for connection aspects, including connecting,
+		private void setFinalSize(JComponent component, int width, int height) {
+			component.setPreferredSize(new Dimension(width, height));
+			component.setMinimumSize(new Dimension(width, height));
+		}
+
+		// panel used for connection aspects, including connecting
 		// disconnecting,
 		// connection status, and byte output.
 		private class ConnectionPanel extends JPanel {
@@ -192,8 +208,6 @@ public class UserInterface {
 			private ConnectionPanel() {
 				this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 				this.setBorder(new LineBorder(Color.BLACK));
-				this.setPreferredSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 3) / 4));
-				this.setMinimumSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 3) / 4));
 
 				Dimension titleDim = new Dimension(80, 25);
 				Dimension compDim = new Dimension(120, 25);
@@ -291,16 +305,17 @@ public class UserInterface {
 		// and visuals for all of the components
 		private class JSPanel extends JPanel {
 			private boolean connected;
-			private String status;
 			private float[] pollData;
+			private JLabel connectionStatus;
 
 			private JSPanel() {
+				this.setFocusable(true);
+				this.addMouseListener(new jsMouseListener(this));
+				this.addFocusListener(new jsFocusListener());
 				pollData = new float[17];
 				connected = false;
-				status = "Disconnected";
 				this.setBorder(new LineBorder(Color.BLACK));
-				this.setPreferredSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
-				this.setMinimumSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
+
 				this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 				Dimension titleDim = new Dimension(80, 25);
 				Dimension compDim = new Dimension(120, 25);
@@ -319,7 +334,7 @@ public class UserInterface {
 				statusTitle.setMaximumSize(titleDim);
 				statusPanel.add(statusTitle);
 
-				JLabel connectionStatus = new JLabel("Disconnected");
+				connectionStatus = new JLabel("Disconnected");
 				connectionStatus.setFont(connectionStatus.getFont().deriveFont(FONTSIZE));
 				connectionStatus.setPreferredSize(compDim);
 				connectionStatus.setMinimumSize(compDim);
@@ -338,7 +353,8 @@ public class UserInterface {
 				Dimension buttonDim = new Dimension(80, 25);
 				mode.setPreferredSize(buttonDim);
 				mode.setMinimumSize(buttonDim);
-				//for toggling keyboard mode
+				// for toggling keyboard mode
+				kbMode.add(mode);
 				mode.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
@@ -354,14 +370,66 @@ public class UserInterface {
 					}
 
 				});
-				kbMode.add(mode);
+
+				mode.addFocusListener(new jsFocusListener());
+
 				Dimension kbDim = new Dimension(225, 40);
 				kbMode.setPreferredSize(kbDim);
 				kbMode.setMaximumSize(kbDim);
 
 				this.add(kbMode);
-				
-				
+
+			}
+
+			private class jsMouseListener implements MouseListener {
+				JSPanel parent;
+
+				public jsMouseListener(JSPanel panel) {
+					parent = panel;
+				}
+
+				@Override
+				public void mouseClicked(MouseEvent e) {
+					// TODO Auto-generated method stub
+					parent.requestFocusInWindow();
+				}
+
+				@Override
+				public void mouseEntered(MouseEvent e) {
+					// TODO Auto-generated method stub
+
+				}
+
+				@Override
+				public void mouseExited(MouseEvent e) {
+					// TODO Auto-generated method stub
+
+				}
+
+				@Override
+				public void mousePressed(MouseEvent e) {
+					// TODO Auto-generated method stub
+
+				}
+
+				@Override
+				public void mouseReleased(MouseEvent e) {
+					// TODO Auto-generated method stub
+
+				}
+
+			}
+
+			private class jsFocusListener implements FocusListener {
+
+				@Override
+				public void focusGained(FocusEvent e) {
+				}
+
+				@Override
+				public void focusLost(FocusEvent e) {
+					kbHandler.clear();
+				}
 
 			}
 
@@ -492,33 +560,32 @@ public class UserInterface {
 
 		// panel for displaying all error messages
 		private class ErrorPanel extends JPanel {
+			Console console;
 
 			private ErrorPanel() {
-				this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+
+				this.setLayout(new BorderLayout());
 				this.setBorder(new LineBorder(Color.BLACK));
-				this.setPreferredSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 1) / 4));
-				this.setMinimumSize(new Dimension((XWIDTH * 1) / 3, (YHEIGHT * 1) / 4));
 
-				JLabel title = new JLabel("Error Log");
-				title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
+				// JLabel title = new JLabel("Error Log");
+				// title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
+				//
+				// title.setAlignmentX(CENTER_ALIGNMENT);
+				// this.add(title, BorderLayout.NORTH);
 
-				title.setAlignmentX(CENTER_ALIGNMENT);
-				this.add(title);
+				console = new Console(nd);
+				this.add(console, BorderLayout.CENTER);
+
 			}
 
 			// adds error to the panel
 			private void addError(String error) {
-				if (this.getComponentCount() > 6) {
-					Component t = this.getComponent(0);
-					this.removeAll();
-					this.add(t);
-				}
-				JLabel errorMsg = new JLabel(error);
-				errorMsg.setAlignmentX(CENTER_ALIGNMENT);
-				errorMsg.setForeground(Color.RED);
-				this.add(errorMsg);
-				this.repaint();
-				this.revalidate();
+				console.addError(error);
+			}
+			
+			//adds normal message to console
+			private void addMessage(String m) {
+				console.addMessage(m);
 			}
 		}
 
@@ -531,8 +598,6 @@ public class UserInterface {
 				title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
 				this.add(title);
 				this.setBorder(new LineBorder(Color.BLACK));
-				this.setPreferredSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
-				this.setMinimumSize(new Dimension((XWIDTH * 2) / 3, (YHEIGHT * 2) / 4));
 			}
 		}
 	}

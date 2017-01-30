@@ -6,30 +6,31 @@ import java.io.IOException;
 public class Launcher {
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 	public static final int PORT = 5565;
-	public static boolean isDebugMode; 
-	public static boolean connectionActivated;
+	public static boolean isDebugMode;
+	public static boolean connectionActivated = false;
 	public static boolean connectedToStick;
 	public static TestServer testServer;
 	public static PeriodicUpdate pu;
 	public static UpdateOnChange uoc;
 
 	public static void main(String[] args) {
-		UserInterface ui = new UserInterface();
-
+		// handing network
+		String hostname = ROBOT_DEFAULT_ADDRESS;
+		NetworkDaemon nd = new NetworkDaemon(hostname, PORT);
+		UserInterface ui = new UserInterface(nd);
 		Joystick j = null;
 		try {
 			j = new Joystick();
 			connectedToStick = true;
+			ui.addMessage("Successfully connected to joystick");
 		} catch (IOException e1) {
 			ui.addError(e1.toString());
 			System.err.println(e1);
 			connectedToStick = false;
 		}
+
 		// class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
-		// handing network
-		String hostname = ROBOT_DEFAULT_ADDRESS;
-		NetworkDaemon nd = new NetworkDaemon(hostname, PORT);
 
 		// class for managing keyboard input
 		KeyboardHandler kbHandler = ui.getKeyboardhandler();
@@ -54,6 +55,12 @@ public class Launcher {
 					if (testServer != null) {
 						testServer.interrupt();
 					}
+					nd.disconnect();
+					if(isDebugMode) {
+						ui.addMessage("Successfully disconnected from Test Server");
+					} else {
+						ui.addMessage("Successfully disconnected from Robot");
+					}
 					connectionActivated = false;
 					ui.updateConnectionStatus(false);
 					ui.setAttemptDisconnection(false);
@@ -76,7 +83,7 @@ public class Launcher {
 				output = j.getRawPollData();
 
 			}
-			//uses keyboard as input source if in keyboard mode
+			// uses keyboard as input source if in keyboard mode
 			if (ui.getIsKB()) {
 				kbHandler.update();
 				output = kbHandler.getRawPollData();
@@ -105,19 +112,24 @@ public class Launcher {
 			pu = new PeriodicUpdate(nd, pdc, ui);
 			pu.start();
 			// starts thread for update on change
-			//if (j != null) {
-				uoc = new UpdateOnChange(j, nd, pdc, ui);
-				uoc.start();
-			//}
+			// if (j != null) {
+			uoc = new UpdateOnChange(j, nd, pdc, ui);
+			uoc.start();
+			// }
 			ui.updateConnectionStatus(true);
+			if(isDebugMode) {
+				ui.addMessage("Successfully connected to Test Server");
+			} else {
+				ui.addMessage("Successfully connected to Robot");
+			}
 
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			ui.addError("Robot Connection failure. Try again.");
 			connectionActivated = false;
 
 		}
+		
 
 		ui.setAttemptConnection(false);
 
@@ -182,8 +194,9 @@ public class Launcher {
 		@Override
 		public void run() {
 			while (!Thread.currentThread().isInterrupted()) {
-				//should probably make this statement clearer...
-				if ((nd.isConnected() && ui.getIsKB() && kbHandler.isChanged()) ||(nd.isConnected() && (j != null) && (!ui.getIsKB()) && j.isChanged())) {
+				// should probably make this statement clearer...
+				if ((nd.isConnected() && ui.getIsKB() && kbHandler.isChanged())
+						|| (nd.isConnected() && (j != null) && (!ui.getIsKB()) && j.isChanged())) {
 					try {
 						ui.setByteOutputColor(Color.GREEN);
 						nd.send(pdc.getByteArr());
