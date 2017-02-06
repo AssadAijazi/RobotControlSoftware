@@ -27,7 +27,7 @@ public class TestServer extends Thread {
 			//test server receives byte array and prints it console
 			while (!Thread.currentThread().isInterrupted()) {
 				InputStream in = server.getInputStream();
-				byte[] input = new byte[8];
+				byte[] input = new byte[14];
 				in.read(input, 0, input.length);
 				System.out.print("Test Server received: ");
 				for (byte b : input) {

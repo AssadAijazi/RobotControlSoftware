@@ -12,6 +12,8 @@ public class Joystick {
 	private float[] rawPollData;
 	// used to check for changes in state of controller
 	private float[] previousRawPollData;
+	//used to tell what number joystick in the components array; used for switching
+	private int index;
 
 	// indices for all of the buttons in the Component array + description of
 	// output
@@ -47,26 +49,42 @@ public class Joystick {
 	private int b11 = 15;
 	private int b12 = 16;
 
-	public Joystick() throws IOException {
+	public Joystick(int index) throws IOException {
+		this.index = index;
 		previousRawPollData = new float[17];
 		rawPollData = new float[17];
-		connectToStick();
-		
+		connectToStick(index);
+
 	}
 
+	//finds the total number of sticks connected
+	public int findDevicesConnected() {
+		int connectedDevices = 0;
+		Controller[] ca = ControllerEnvironment.getDefaultEnvironment().getControllers();
+		for(int i = 0; i < ca.length; i++) {
+			if(ca[i].getType().equals(Controller.Type.STICK)) {
+				connectedDevices++;
+			}
+		}
+		return connectedDevices;
+	}
 	/*
 	 * Loops through all connected devices and finds the joystick
 	 */
-	private void connectToStick() throws IOException {
+	private void connectToStick(int index) throws IOException {
 		long start = System.currentTimeMillis();
 		while (System.currentTimeMillis() < start + 500) {
 			Controller[] ca = ControllerEnvironment.getDefaultEnvironment().getControllers();
+			int devicesFound = 0;
 			for (int i = 0; i < ca.length; i++) {
 				if (ca[i].getType().equals(Controller.Type.STICK)) {
-					connected = true;
-					joystick = ca[i];
-					components = joystick.getComponents();
-					return;
+					devicesFound++;
+					if (devicesFound == index) {
+						connected = true;
+						joystick = ca[i];
+						components = joystick.getComponents();
+						return;
+					} 
 				}
 			}
 		}
@@ -77,23 +95,27 @@ public class Joystick {
 	 * Polls the controller then updates the raw poll data array with the new
 	 * values
 	 */
+	
+	public void switchIndex(int i) throws IOException {
+		this.index = i;
+			connectToStick(i);
+	}
 	public void update() throws Exception {
 		for (int i = 0; i < components.length; i++) {
 			previousRawPollData[i] = components[i].getPollData();
 		}
 		if (connected) {
 
-		connected = joystick.poll();
-		if(!connected) {
-			throw new Exception("Joystick has been disconnected. Restart.");
-		}
-		}
-
-			for (int i = 0; i < components.length; i++) {
-				rawPollData[i] = components[i].getPollData();
+			connected = joystick.poll();
+			if (!connected) {
+				throw new Exception("Joystick has been disconnected. Restart.");
 			}
 		}
-	
+
+		for (int i = 0; i < components.length; i++) {
+			rawPollData[i] = components[i].getPollData();
+		}
+	}
 
 	public boolean isChanged() {
 		for (int i = 0; i < components.length; i++) {
@@ -103,10 +125,15 @@ public class Joystick {
 		}
 		return false;
 	}
+	
+	public int getIndex() {
+		return index;
+	}
 
 	public float[] getRawPollData() {
 		return rawPollData;
 	}
+	
 
 	/*
 	 * Polls joystick, then loops through each component, printing the
