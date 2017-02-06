@@ -70,7 +70,7 @@ public class Launcher {
 			} else {
 				// checks if disconnect button has been pushed
 				if (ui.getAttemptDisconnection()) {
-					// nd.disconnect();
+					nd.disconnect();
 					pu.interrupt();
 					if (uoc != null) {
 						uoc.interrupt();
