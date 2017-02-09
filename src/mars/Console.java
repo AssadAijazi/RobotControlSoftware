@@ -95,9 +95,9 @@ public class Console extends JPanel {
 		StyleConstants.setForeground(style, c);
 		try {
 			document.insertString(document.getLength(), text + "\n", style);
-		} catch (BadLocationException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			addError(e.toString());
 		}
 		scrollBottom();
 	}

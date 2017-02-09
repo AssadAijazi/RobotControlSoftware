@@ -4,55 +4,109 @@ import java.io.*;
 import java.net.*;
 
 //test server to simulate robot; for debugging purposes
-public class TestServer extends Thread {
+public class TestServer {
 	private ServerSocket serverSocket;
 	private Socket server;
+	private Thread rt;
+	private static Thread st;
 
 	public TestServer(int portNum) {
 		try {
 			serverSocket = new ServerSocket(portNum);
 			serverSocket.setSoTimeout(0);
+			rt = new ReceivingThread(serverSocket, server);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-
 			e.printStackTrace();
 		}
 	}
+	
+	public void start() {
+		rt.start();
+	}
+	public void stop() {
+		rt.interrupt();
+		st.interrupt();
+	}
 
-	public void run() {
-		try {
-			// establishes connection
-			server = serverSocket.accept();
+	public static class ReceivingThread extends Thread {
+		ServerSocket serverSocket;
+		Socket server;
+		public ReceivingThread(ServerSocket serverSocket, Socket server) {
+			this.serverSocket = serverSocket;
+			this.server = server;
+		}
 
-			// test server receives byte array and prints it console
-			while (!Thread.currentThread().isInterrupted()) {
-				InputStream in = server.getInputStream();
-				byte[] input = new byte[14];
-				int bytesRead = in.read(input, 0, input.length);
+		public void run() {
+			try {
+				// establishes connection
+				server = serverSocket.accept();
+				st = new SendingThread(server);
+				st.start();
 
-				if (bytesRead > 0) {
-					System.out.print("Test Server received: ");
+				// test server receives byte array and prints it console
+				while (!Thread.currentThread().isInterrupted()) {
+					InputStream in = server.getInputStream();
+					byte[] input = new byte[14];
+					int bytesRead = in.read(input, 0, input.length);
 
-					for (byte b : input) {
-						System.out
-								.print(String.format("%8s", Integer.toBinaryString((b + 256) % 256)).replace(' ', '0'));
-						System.out.print(" ");
+					if (bytesRead > 0) {
+						System.out.print("Test Server received: ");
+
+						for (byte b : input) {
+							System.out.print(
+									String.format("%8s", Integer.toBinaryString((b + 256) % 256)).replace(' ', '0'));
+							System.out.print(" ");
+						}
+						System.out.println();
 					}
-					System.out.println();
 				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
-		try {
-			serverSocket.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			try {
+				serverSocket.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
+		}
+	}
+	public static class SendingThread extends Thread {
+		Socket server;
+		
+		public SendingThread(Socket server) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				Thread.currentThread().interrupt();
+			}
+			this.server = server;
+		}
+		
+		@Override 
+		public void run() {
+			while(!Thread.currentThread().isInterrupted()) {
+					try {
+						Thread.sleep(5000);
+						OutputStream out = server.getOutputStream();
+						int length = (int)(Math.random() * 10) + 1;
+						byte[] output = new byte[length];
+						for(int i = 0; i < output.length; i++) {
+							output[i] = (byte)(Math.random() * 255 - 127);
+						}
+						
+						out.write(output, 0, output.length);
+					} catch (IOException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+					}
+			}
+		}
 	}
 
 }

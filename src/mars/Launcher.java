@@ -17,6 +17,7 @@ public class Launcher {
 	public static TestServer testServer;
 	public static PeriodicUpdate pu;
 	public static UpdateOnChange uoc;
+	public static ReceiveThread rt;
 
 	public static void main(String[] args) {
 		// handing network
@@ -76,8 +77,9 @@ public class Launcher {
 						uoc.interrupt();
 					}
 					if (testServer != null) {
-						testServer.interrupt();
+						testServer.stop();
 					}
+					rt.interrupt();
 					if (isDebugMode) {
 						ui.addMessage("Successfully disconnected from Test Server");
 					} else {
@@ -131,8 +133,8 @@ public class Launcher {
 		}
 
 	}
-	
-	//used for switching which joystick is which
+
+	// used for switching which joystick is which
 	public static class SwitchButtonListener implements ActionListener {
 
 		private Joystick rightJoy, leftJoy;
@@ -180,7 +182,7 @@ public class Launcher {
 						ui.addError("Left Joystick: " + e1);
 					}
 				}
-				if(rightSwitched && leftSwitched) {
+				if (rightSwitched && leftSwitched) {
 					ui.addMessage("Successfully switched joysticks");
 				}
 			} else {
@@ -210,6 +212,8 @@ public class Launcher {
 			uoc = new UpdateOnChange(rightJoy, leftJoy, nd, pdc, ui);
 			uoc.start();
 			// }
+			rt = new ReceiveThread(nd, ui);
+			rt.start();
 			ui.updateConnectionStatus(true);
 			if (isDebugMode) {
 				ui.addMessage("Successfully connected to Test Server");
@@ -252,7 +256,6 @@ public class Launcher {
 					Thread.currentThread().interrupt();
 				}
 				if (nd.isConnected()) {
-					printByteArr(pdc.getByteArr());
 					try {
 						ui.setByteOutputColor(Color.GREEN);
 						nd.send(pdc.getByteArr());
@@ -303,24 +306,49 @@ public class Launcher {
 					}
 				}
 			}
+
 		}
 
+	}
+
+	public static class ReceiveThread extends Thread {
+		NetworkDaemon nd;
+		UserInterface ui;
+
+		public ReceiveThread(NetworkDaemon nd, UserInterface ui) {
+			this.nd = nd;
+			this.ui = ui;
+		}
+
+		@Override
+		public void run() {
+			byte[] input = new byte[0];
+			while (true) {
+				try {
+					if (nd.isConnected()) {
+						input = nd.receive();
+					}
+					if (input.length > 0) {
+						ui.addMessage("Received: " + byteArrToString(input));
+					}
+				} catch (Exception e) {
+					ui.addError(e.toString());
+				}
+			}
+		}
 	}
 
 	// fancy method from stack overflow to properly print bytes
 	// to console
 
-	public static void printByteArr(byte[] byteOutput) {
-		if (!isDebugMode) {
-			System.out.print("Sent: ");
-			for (int i = 0; i < byteOutput.length; i++) {
-				String formattedByteArr = String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256))
-						.replace(' ', '0');
-				System.out.print(formattedByteArr);
-				System.out.print(" ");
-			}
-			System.out.println();
+	public static String byteArrToString(byte[] byteOutput) {
+		String formattedByteArr = "";
+		for (int i = 0; i < byteOutput.length; i++) {
+			formattedByteArr += String.format("%8s", Integer.toBinaryString((byteOutput[i] + 256) % 256)).replace(' ',
+					'0');
+			formattedByteArr += " ";
 		}
+		return formattedByteArr;
 	}
 
 }

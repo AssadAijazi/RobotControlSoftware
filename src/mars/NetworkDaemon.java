@@ -45,7 +45,25 @@ public class NetworkDaemon {
 		}
 	}
 
-	// determines if is connected (accessor method for socket)
+	// receives byte array from test server/robot
+	public byte[] receive() throws Exception {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		byte[] received = new byte[20];
+		InputStream in = connection.getInputStream();
+		if(!connection.isClosed()) {
+			int numBytes = in.read(received);
+			
+			System.out.println(numBytes);
+			int i = 0;
+			while(baos.size() < numBytes) {
+				baos.write(received, i, 1);
+				i++;
+			}
+		}
+		return baos.toByteArray();
+	}
+
+	// determines if is connnected (accessor method for socket)
 	public boolean isConnected() {
 		return !connection.isClosed();
 	}
