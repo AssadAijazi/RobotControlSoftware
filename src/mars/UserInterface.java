@@ -16,6 +16,8 @@ public class UserInterface {
 	private MainPanel mainPanel;
 	private boolean attemptConnection = false;
 	private boolean attemptDisconnection = false;
+	private boolean attemptPause = false;
+	private boolean attemptPlay = false;
 	private boolean isDebug = false;
 	private boolean isConnected = false;
 	private boolean isKB = false;
@@ -43,7 +45,8 @@ public class UserInterface {
 
 	// updates section of panel relating to joystick panel
 
-	public void updateJoystickPanel(float[] rightPollData, boolean connectedToRightStick, float[] leftPollData, boolean connectedToLeftStick) {
+	public void updateJoystickPanel(float[] rightPollData, boolean connectedToRightStick, float[] leftPollData,
+			boolean connectedToLeftStick) {
 		if (connectedToLeftStick) {
 			mainPanel.jsPanel.leftStickConnectionStatus.setForeground(Color.GREEN);
 			mainPanel.jsPanel.leftStickConnectionStatus.setText("Connected");
@@ -68,11 +71,14 @@ public class UserInterface {
 			mainPanel.connectionPanel.status.setForeground(Color.GREEN);
 			mainPanel.connectionPanel.mode.setEnabled(false);
 			mainPanel.connectionPanel.connect.setText("Disconnect");
+			mainPanel.connectionPanel.pause.setVisible(true);
 		} else {
 			mainPanel.connectionPanel.mode.setEnabled(true);
 			mainPanel.connectionPanel.connect.setText("Connect");
 			mainPanel.connectionPanel.status.setText("Disconnected");
 			mainPanel.connectionPanel.status.setForeground(Color.RED);
+			mainPanel.connectionPanel.pause.setVisible(false);
+			mainPanel.connectionPanel.pause.setText("Pause Joystick Stream");
 		}
 	}
 
@@ -125,6 +131,26 @@ public class UserInterface {
 	public void setAttemptDisconnection(boolean b) {
 		attemptDisconnection = b;
 	}
+	
+	//checks whether whether to pause the joystick stream 
+	public boolean getAttemptPause() {
+		return attemptPause;
+	}
+	
+	//sets whether to attempt pause
+	public void setAttemptPause(boolean b) {
+		attemptPause = b;
+	}
+	
+	//checks whether whether to play the joystick stream 
+		public boolean getAttemptPlay() {
+			return attemptPlay;
+		}
+		
+		//sets whether to attempt play
+		public void setAttemptPlay(boolean b) {
+			attemptPlay = b;
+		}
 
 	// gets whether in keyboard mode
 	public boolean getIsKB() {
@@ -145,10 +171,15 @@ public class UserInterface {
 	public KeyboardHandler getKeyboardhandler() {
 		return kbHandler;
 	}
-	
-	//used for switching joysticks
+
+	// used for switching joysticks
 	public JButton getSwitchButton() {
 		return mainPanel.jsPanel.switchJS;
+	}
+	
+	//used for pausing the threads that send the joystick data streams
+	public JButton getPauseButton() {
+		return mainPanel.connectionPanel.pause;
 	}
 
 	private class MainPanel extends JPanel {
@@ -215,7 +246,7 @@ public class UserInterface {
 		private class ConnectionPanel extends JPanel {
 			private JLabel title, status;
 			private JLabel[] byteOutput;
-			private JButton connect, mode;
+			private JButton connect, mode, pause;
 
 			private ConnectionPanel() {
 				this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -281,6 +312,29 @@ public class UserInterface {
 
 				this.add(debug);
 
+				JPanel buttonPanel = new JPanel();
+				
+				pause = new JButton("Pause Joystick Stream");
+				pause.setSize(pause.getSize());
+				//used for pausing and playing joystick stream
+				pause.addActionListener(new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						JButton source = (JButton)e.getSource();
+						if(source.getText().equals("Pause Joystick Stream")) {
+							attemptPause = true;
+							source.setText("Resume Joystick Stream");
+						} else {
+							attemptPlay = true;
+							source.setText("Pause Joystick Stream");
+						}
+						
+					}
+					
+				});
+				pause.setVisible(false);
+				
 				connect = new JButton("Connect");
 				connect.setAlignmentX(CENTER_ALIGNMENT);
 				// action listener for the connect button; used for connecting
@@ -295,12 +349,13 @@ public class UserInterface {
 						}
 					}
 				});
-
-				this.add(connect);
-
+				
+				buttonPanel.add(pause);
+				buttonPanel.add(connect);
+				this.add(buttonPanel);
 				byteOutput = new JLabel[3];
 				for (int i = 0; i < byteOutput.length; i++) {
-					if (i != (byteOutput.length -1)) {
+					if (i != (byteOutput.length - 1)) {
 						byteOutput[i] = new JLabel("00000000 00000000 00000000 00000000 00000000");
 					} else {
 						byteOutput[i] = new JLabel("00000000 00000000 00000000 00000000");
@@ -336,7 +391,6 @@ public class UserInterface {
 				connected = false;
 				this.setBorder(new LineBorder(Color.BLACK));
 
-				
 				Dimension titleDim = new Dimension(60, 25);
 				Dimension compDim = new Dimension(120, 25);
 				Dimension panelDim = new Dimension(200, 30);
@@ -347,10 +401,9 @@ public class UserInterface {
 				this.add(titlePan, BorderLayout.NORTH);
 				titlePan.setPreferredSize(panelDim);
 				titlePan.setMaximumSize(panelDim);
-				//titlePan.setBackground(Color.RED);
+				// titlePan.setBackground(Color.RED);
 				title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
 				title.setBackground(Color.RED);
-				
 
 				JPanel statusPanel = new JPanel();
 				statusPanel.setAlignmentX(CENTER_ALIGNMENT);
@@ -373,7 +426,7 @@ public class UserInterface {
 				statusPanel.add(leftStickConnectionStatus);
 				statusPanel.setPreferredSize(panelDim);
 				statusPanel.setMaximumSize(panelDim);
-				//this.add(statusPanel);
+				// this.add(statusPanel);
 
 				JPanel buttonPanel = new JPanel();
 				JButton mode = new JButton("Keyboard Mode: Off");
@@ -403,14 +456,13 @@ public class UserInterface {
 				Dimension kbDim = new Dimension(100, 35);
 				buttonPanel.setPreferredSize(kbDim);
 				buttonPanel.setMaximumSize(kbDim);
-				
+
 				switchJS = new JButton("Switch Joysticks");
 				switchJS.setPreferredSize(buttonDim);
 				switchJS.setMaximumSize(buttonDim);
 				buttonPanel.add(switchJS);
 
 				this.add(buttonPanel, BorderLayout.SOUTH);
-				
 
 			}
 
@@ -468,8 +520,8 @@ public class UserInterface {
 
 			public void paintComponent(Graphics g) {
 				super.paintComponent(g);
-				//shifts everything on the panel left and right
-				//shifts everything on the panel up or down
+				// shifts everything on the panel left and right
+				// shifts everything on the panel up or down
 				int horizontalOffset = 50;
 				int verticalOffset = 30;
 				renderRightStick(g, rightPollData, horizontalOffset, verticalOffset);
@@ -479,7 +531,8 @@ public class UserInterface {
 			private void renderRightStick(Graphics g, float[] pollData, int horizontalOffset, int verticalOffset) {
 				renderButtons(g, 545 - horizontalOffset, 0 + verticalOffset, pollData);
 				renderPOVIndicator(g, 555 - horizontalOffset, 195 + verticalOffset, pollData[2], "POV");
-				renderJoyStickIndicator(g, 765 - horizontalOffset, 10 + verticalOffset, pollData[1], pollData[0], "Main Stick");
+				renderJoyStickIndicator(g, 765 - horizontalOffset, 10 + verticalOffset, pollData[1], pollData[0],
+						"Main Stick");
 				renderThrottleIndicator(g, 680 - horizontalOffset, 195 + verticalOffset, pollData[12], "Throttle");
 				renderRZIndicator(g, 810 - horizontalOffset, 195 + verticalOffset, pollData[3], "Z Rotation");
 			}
@@ -487,7 +540,8 @@ public class UserInterface {
 			private void renderLeftStick(Graphics g, float[] pollData, int horizontalOffset, int verticalOffset) {
 				renderButtons(g, 10 + horizontalOffset, 0 + verticalOffset, pollData);
 				renderPOVIndicator(g, 20 + horizontalOffset, 195 + verticalOffset, pollData[2], "POV");
-				renderJoyStickIndicator(g, 230 + horizontalOffset, 10 + verticalOffset, pollData[1], pollData[0], "Main Stick");
+				renderJoyStickIndicator(g, 230 + horizontalOffset, 10 + verticalOffset, pollData[1], pollData[0],
+						"Main Stick");
 				renderThrottleIndicator(g, 150 + horizontalOffset, 195 + verticalOffset, pollData[12], "Throttle");
 				renderRZIndicator(g, 280 + horizontalOffset, 195 + verticalOffset, pollData[3], "Z Rotation");
 			}

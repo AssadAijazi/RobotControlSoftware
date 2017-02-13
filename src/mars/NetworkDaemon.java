@@ -52,8 +52,6 @@ public class NetworkDaemon {
 		InputStream in = connection.getInputStream();
 		if(!connection.isClosed()) {
 			int numBytes = in.read(received);
-			
-			System.out.println(numBytes);
 			int i = 0;
 			while(baos.size() < numBytes) {
 				baos.write(received, i, 1);

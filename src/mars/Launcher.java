@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.net.SocketException;
 
 import javax.swing.JButton;
 
@@ -47,11 +48,12 @@ public class Launcher {
 			connectedToLeftStick = false;
 		}
 
-		JButton switchButton = ui.getSwitchButton();
-		switchButton.addActionListener(new SwitchButtonListener(rightJoy, leftJoy, ui));
-
 		// class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
+
+		JButton switchButton = ui.getSwitchButton();
+		switchButton.addActionListener(new SwitchButtonListener(rightJoy, leftJoy, ui));
+		JButton pauseButton = ui.getPauseButton();
 
 		// class for managing keyboard input
 		KeyboardHandler kbHandler = ui.getKeyboardhandler();
@@ -68,8 +70,9 @@ public class Launcher {
 				if (ui.getAttemptConnection()) {
 					attemptInitializeConnection(rightJoy, leftJoy, nd, pdc, ui);
 				}
-			} else {
 				// checks if disconnect button has been pushed
+			} else {
+
 				if (ui.getAttemptDisconnection()) {
 					nd.disconnect();
 					pu.interrupt();
@@ -89,6 +92,20 @@ public class Launcher {
 					ui.updateConnectionStatus(false);
 					ui.setAttemptDisconnection(false);
 					ui.setByteOutputColor(Color.BLACK);
+
+				} else if (ui.getAttemptPause()) {
+					pu.interrupt();
+					uoc.interrupt();
+					ui.addMessage("Successfully paused Joystick Stream");
+					ui.setAttemptPause(false);
+
+				} else if (ui.getAttemptPlay()) {
+					pu = new PeriodicUpdate(nd, pdc, ui);
+					pu.start();
+					uoc = new UpdateOnChange(rightJoy, leftJoy, nd, pdc, ui);
+					uoc.start();
+					ui.addMessage("Successfully resumed Joystick Stream");
+					ui.setAttemptPlay(false);
 				}
 			}
 			rightOutput = new float[17];
@@ -208,10 +225,8 @@ public class Launcher {
 			pu = new PeriodicUpdate(nd, pdc, ui);
 			pu.start();
 			// starts thread for update on change
-			// if (j != null) {
 			uoc = new UpdateOnChange(rightJoy, leftJoy, nd, pdc, ui);
 			uoc.start();
-			// }
 			rt = new ReceiveThread(nd, ui);
 			rt.start();
 			ui.updateConnectionStatus(true);
@@ -268,6 +283,8 @@ public class Launcher {
 				}
 			}
 
+			ui.setByteOutputColor(Color.BLACK);
+
 		}
 	}
 
@@ -306,6 +323,7 @@ public class Launcher {
 					}
 				}
 			}
+			ui.setByteOutputColor(Color.BLACK);
 
 		}
 
@@ -322,17 +340,21 @@ public class Launcher {
 
 		@Override
 		public void run() {
-			byte[] input = new byte[0];
-			while (true) {
-				try {
-					if (nd.isConnected()) {
-						input = nd.receive();
+			while (!Thread.currentThread().isInterrupted()) {
+				byte[] input = new byte[0];
+				while (true) {
+					try {
+						if (nd.isConnected()) {
+							input = nd.receive();
+						}
+						if (input.length > 0) {
+							ui.addMessage("Received: " + byteArrToString(input));
+						}
+					} catch (SocketException e) {
+						break;
+					} catch (Exception e) {
+						ui.addError(e.toString());
 					}
-					if (input.length > 0) {
-						ui.addMessage("Received: " + byteArrToString(input));
-					}
-				} catch (Exception e) {
-					ui.addError(e.toString());
 				}
 			}
 		}
