@@ -11,51 +11,58 @@ import javax.swing.border.LineBorder;
 //Main panel is further divided up into 4 separate panels: ConnnectionPanel,k
 //JoystickPanel, ErrorPanel, and CameraPanel.
 public class UserInterface {
+	// default dimensions of the window
 	private static final int XWIDTH = 1366;
 	private static final int YHEIGHT = 725;
+	// main content panel
 	private MainPanel mainPanel;
+	// flags for determining when the connect, disconnect, pause, and play
+	// buttons are pushed
 	private boolean attemptConnection = false;
 	private boolean attemptDisconnection = false;
 	private boolean attemptPause = false;
 	private boolean attemptPlay = false;
+	// flag for determining if in debug mode, based on the debug mode button
 	private boolean isDebug = false;
+	// state of the socket connection
 	private boolean isConnected = false;
+	// state of whether in keyboard mode
 	private boolean isKB = false;
 	private float[] kbOutput;
+	// class that handles keyboard testing input
 	private KeyboardHandler kbHandler;
+	// default font size for all titles
 	private static final float TITLEFONTSIZE = 20.0f;
+	// default font size for all other text
 	private static final float FONTSIZE = 17.0f;
+	// Class that is used to send signals to robot/test server
 	private NetworkDaemon nd;
 
 	// loads up the frame on to screen and sets the panel as MainPanel
-	public UserInterface(NetworkDaemon n) {
-		nd = n;
+	public UserInterface(NetworkDaemon nd) {
+		this.nd = nd;
+
+		// main content panel
+		mainPanel = new MainPanel();
+
 		// used as output for keyboard mode
 		kbOutput = new float[17];
+		kbHandler = new KeyboardHandler(mainPanel.jsPanel);
+
+		// setting up jframe state and variables
 		JFrame frame = new JFrame("Robot Control Software");
 		frame.setSize(XWIDTH, YHEIGHT);
 		frame.setLocationRelativeTo(null);
 		frame.setResizable(false);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		mainPanel = new MainPanel();
-		kbHandler = new KeyboardHandler(mainPanel.jsPanel);
 		frame.setContentPane(mainPanel);
 		frame.setVisible(true);
 	}
 
 	// updates section of panel relating to joystick panel
-
 	public void updateJoystickPanel(float[] rightPollData, boolean connectedToRightStick, float[] leftPollData,
 			boolean connectedToLeftStick) {
-		if (connectedToLeftStick) {
-			mainPanel.jsPanel.leftStickConnectionStatus.setForeground(Color.GREEN);
-			mainPanel.jsPanel.leftStickConnectionStatus.setText("Connected");
-			mainPanel.jsPanel.connected = true;
-		} else {
-			mainPanel.jsPanel.leftStickConnectionStatus.setForeground(Color.RED);
-			mainPanel.jsPanel.leftStickConnectionStatus.setText("Disconnected");
-			mainPanel.jsPanel.connected = false;
-		}
+
 		mainPanel.jsPanel.rightPollData = rightPollData;
 		mainPanel.jsPanel.leftPollData = leftPollData;
 
@@ -131,26 +138,26 @@ public class UserInterface {
 	public void setAttemptDisconnection(boolean b) {
 		attemptDisconnection = b;
 	}
-	
-	//checks whether whether to pause the joystick stream 
+
+	// checks whether whether to pause the joystick stream
 	public boolean getAttemptPause() {
 		return attemptPause;
 	}
-	
-	//sets whether to attempt pause
+
+	// sets whether to attempt pause
 	public void setAttemptPause(boolean b) {
 		attemptPause = b;
 	}
-	
-	//checks whether whether to play the joystick stream 
-		public boolean getAttemptPlay() {
-			return attemptPlay;
-		}
-		
-		//sets whether to attempt play
-		public void setAttemptPlay(boolean b) {
-			attemptPlay = b;
-		}
+
+	// checks whether whether to play the joystick stream
+	public boolean getAttemptPlay() {
+		return attemptPlay;
+	}
+
+	// sets whether to attempt play
+	public void setAttemptPlay(boolean b) {
+		attemptPlay = b;
+	}
 
 	// gets whether in keyboard mode
 	public boolean getIsKB() {
@@ -176,8 +183,8 @@ public class UserInterface {
 	public JButton getSwitchButton() {
 		return mainPanel.jsPanel.switchJS;
 	}
-	
-	//used for pausing the threads that send the joystick data streams
+
+	// used for pausing the threads that send the joystick data streams
 	public JButton getPauseButton() {
 		return mainPanel.connectionPanel.pause;
 	}
@@ -313,28 +320,28 @@ public class UserInterface {
 				this.add(debug);
 
 				JPanel buttonPanel = new JPanel();
-				
+
 				pause = new JButton("Pause Joystick Stream");
 				pause.setSize(pause.getSize());
-				//used for pausing and playing joystick stream
+				// used for pausing and playing joystick stream
 				pause.addActionListener(new ActionListener() {
 
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						JButton source = (JButton)e.getSource();
-						if(source.getText().equals("Pause Joystick Stream")) {
+						JButton source = (JButton) e.getSource();
+						if (source.getText().equals("Pause Joystick Stream")) {
 							attemptPause = true;
 							source.setText("Resume Joystick Stream");
 						} else {
 							attemptPlay = true;
 							source.setText("Pause Joystick Stream");
 						}
-						
+
 					}
-					
+
 				});
 				pause.setVisible(false);
-				
+
 				connect = new JButton("Connect");
 				connect.setAlignmentX(CENTER_ALIGNMENT);
 				// action listener for the connect button; used for connecting
@@ -349,7 +356,7 @@ public class UserInterface {
 						}
 					}
 				});
-				
+
 				buttonPanel.add(pause);
 				buttonPanel.add(connect);
 				this.add(buttonPanel);
@@ -375,20 +382,22 @@ public class UserInterface {
 		// status
 		// and visuals for all of the components
 		private class JSPanel extends JPanel {
-			private boolean connected;
 			private float[] rightPollData;
 			private float[] leftPollData;
-			private JLabel leftStickConnectionStatus;
 			private JButton switchJS;
 
 			private JSPanel() {
+				// raw poll data from both joysticks
+				rightPollData = new float[17];
+				leftPollData = new float[17];
+
+				// for keyboard mode focusing issues, only allows keyboard input
+				// when this panel is focused
 				this.setFocusable(true);
 				this.addMouseListener(new jsMouseListener(this));
 				this.addFocusListener(new jsFocusListener());
+
 				this.setLayout(new BorderLayout());
-				rightPollData = new float[17];
-				leftPollData = new float[17];
-				connected = false;
 				this.setBorder(new LineBorder(Color.BLACK));
 
 				Dimension titleDim = new Dimension(60, 25);
@@ -401,7 +410,6 @@ public class UserInterface {
 				this.add(titlePan, BorderLayout.NORTH);
 				titlePan.setPreferredSize(panelDim);
 				titlePan.setMaximumSize(panelDim);
-				// titlePan.setBackground(Color.RED);
 				title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
 				title.setBackground(Color.RED);
 
@@ -416,23 +424,12 @@ public class UserInterface {
 				statusTitle.setMaximumSize(titleDim);
 				statusPanel.add(statusTitle);
 
-				leftStickConnectionStatus = new JLabel("Disconnected");
-				leftStickConnectionStatus.setFont(leftStickConnectionStatus.getFont().deriveFont(FONTSIZE));
-				leftStickConnectionStatus.setHorizontalAlignment(SwingConstants.LEFT);
-				leftStickConnectionStatus.setPreferredSize(compDim);
-				leftStickConnectionStatus.setMinimumSize(compDim);
-				leftStickConnectionStatus.setForeground(Color.RED);
-
-				statusPanel.add(leftStickConnectionStatus);
-				statusPanel.setPreferredSize(panelDim);
-				statusPanel.setMaximumSize(panelDim);
-				// this.add(statusPanel);
-
 				JPanel buttonPanel = new JPanel();
 				JButton mode = new JButton("Keyboard Mode: Off");
 				Dimension buttonDim = new Dimension(150, 25);
 				mode.setPreferredSize(buttonDim);
 				mode.setMinimumSize(buttonDim);
+
 				// for toggling keyboard mode
 				buttonPanel.add(mode);
 				mode.addActionListener(new ActionListener() {
@@ -451,11 +448,13 @@ public class UserInterface {
 
 				});
 
+				// adds focus listener to keyboard mode to avoid focusing issues
 				mode.addFocusListener(new jsFocusListener());
 
-				Dimension kbDim = new Dimension(100, 35);
-				buttonPanel.setPreferredSize(kbDim);
-				buttonPanel.setMaximumSize(kbDim);
+				// sets up panel for buttons at the bottom
+				Dimension buttonPanelDim = new Dimension(100, 35);
+				buttonPanel.setPreferredSize(buttonPanelDim);
+				buttonPanel.setMaximumSize(buttonPanelDim);
 
 				switchJS = new JButton("Switch Joysticks");
 				switchJS.setPreferredSize(buttonDim);
@@ -466,6 +465,7 @@ public class UserInterface {
 
 			}
 
+			// focus on this panel if it is clicked on
 			private class jsMouseListener implements MouseListener {
 				JSPanel parent;
 
@@ -475,32 +475,23 @@ public class UserInterface {
 
 				@Override
 				public void mouseClicked(MouseEvent e) {
-					// TODO Auto-generated method stub
 					parent.requestFocusInWindow();
 				}
-
-				@Override
-				public void mouseEntered(MouseEvent e) {
-					// TODO Auto-generated method stub
-
-				}
-
+				
 				@Override
 				public void mouseExited(MouseEvent e) {
-					// TODO Auto-generated method stub
-
 				}
 
 				@Override
 				public void mousePressed(MouseEvent e) {
-					// TODO Auto-generated method stub
-
 				}
 
 				@Override
 				public void mouseReleased(MouseEvent e) {
-					// TODO Auto-generated method stub
+				}
 
+				@Override
+				public void mouseEntered(MouseEvent e) {
 				}
 
 			}
@@ -513,11 +504,12 @@ public class UserInterface {
 
 				@Override
 				public void focusLost(FocusEvent e) {
+					//if focus is lost on this panel, set the keyboard handler to default state
 					kbHandler.clear();
 				}
 
 			}
-
+			//renders all of the joystick components on screen
 			public void paintComponent(Graphics g) {
 				super.paintComponent(g);
 				// shifts everything on the panel left and right
@@ -528,6 +520,7 @@ public class UserInterface {
 				renderLeftStick(g, leftPollData, horizontalOffset, verticalOffset);
 			}
 
+			//renders right joystick
 			private void renderRightStick(Graphics g, float[] pollData, int horizontalOffset, int verticalOffset) {
 				renderButtons(g, 545 - horizontalOffset, 0 + verticalOffset, pollData);
 				renderPOVIndicator(g, 555 - horizontalOffset, 195 + verticalOffset, pollData[2], "POV");
@@ -537,6 +530,7 @@ public class UserInterface {
 				renderRZIndicator(g, 810 - horizontalOffset, 195 + verticalOffset, pollData[3], "Z Rotation");
 			}
 
+			//renders left joystick
 			private void renderLeftStick(Graphics g, float[] pollData, int horizontalOffset, int verticalOffset) {
 				renderButtons(g, 10 + horizontalOffset, 0 + verticalOffset, pollData);
 				renderPOVIndicator(g, 20 + horizontalOffset, 195 + verticalOffset, pollData[2], "POV");
@@ -546,6 +540,7 @@ public class UserInterface {
 				renderRZIndicator(g, 280 + horizontalOffset, 195 + verticalOffset, pollData[3], "Z Rotation");
 			}
 
+			//renders buttons
 			private void renderButtons(Graphics g, int x, int y, float[] pollData) {
 				g.setFont(new Font("Dialog", Font.BOLD, 15));
 
@@ -581,6 +576,7 @@ public class UserInterface {
 			}
 		}
 
+		//renders pov (the small stick on the main joy stick
 		private void renderPOVIndicator(Graphics g, int x, int y, double pov, String label) {
 			double jx, jy;
 			if (pov == 0.0f) {
@@ -606,6 +602,7 @@ public class UserInterface {
 
 		}
 
+		//renders the main stick
 		private void renderJoyStickIndicator(Graphics g, int x, int y, float jx, float jy, String label) {
 			int jlength = 40;
 			int boxsize = 140;
@@ -623,6 +620,7 @@ public class UserInterface {
 
 		}
 
+		//renders the slider
 		private void renderThrottleIndicator(Graphics g, int x, int y, float slider, String label) {
 			double jx = Math.cos(-1 * Math.PI / 4 * slider + Math.PI / 2);
 			double jy = Math.sin(-1 * Math.PI / 4 * slider + Math.PI / 2);
@@ -643,6 +641,7 @@ public class UserInterface {
 			g.drawString(label, x + boxsize / 12, y + (boxsize + 20));
 		}
 
+		//renders the rotational z value
 		private void renderRZIndicator(Graphics g, int x, int y, float rz, String label) {
 			double jx = Math.cos(-1 * Math.PI / 4 * rz + Math.PI / 2);
 			double jy = Math.sin(-1 * Math.PI / 4 * rz + Math.PI / 2);
@@ -670,13 +669,7 @@ public class UserInterface {
 
 				this.setLayout(new BorderLayout());
 				this.setBorder(new LineBorder(Color.BLACK));
-
-				// JLabel title = new JLabel("Error Log");
-				// title.setFont(title.getFont().deriveFont(TITLEFONTSIZE));
-				//
-				// title.setAlignmentX(CENTER_ALIGNMENT);
-				// this.add(title, BorderLayout.NORTH);
-
+				
 				console = new Console(nd);
 				this.add(console, BorderLayout.CENTER);
 

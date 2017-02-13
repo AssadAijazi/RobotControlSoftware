@@ -26,8 +26,9 @@ public class Console extends JPanel {
 	boolean trace = false;
 	private NetworkDaemon nd;
 
-	public Console(NetworkDaemon n) {
-		nd = n;
+	public Console(NetworkDaemon nd) {
+		//setting up a bunch of default values
+		this.nd = nd;
 		this.setLayout(new BorderLayout());
 
 		console = new JTextPane();
@@ -35,13 +36,15 @@ public class Console extends JPanel {
 		console.setFont(new Font("Monospaced", Font.BOLD, 18));
 		console.setOpaque(false);
 		console.setFocusable(false);
+		
 		document = console.getStyledDocument();
+		
 		scrollPane = new JScrollPane(console);
 		scrollPane.setBorder(null);
 		scrollPane.setOpaque(false);
 		scrollPane.getViewport().setOpaque(false);
+		
 		input = new JTextField();
-
 		input.setBorder(BorderFactory.createMatteBorder(1, 0, 13, 0, Color.GREEN));
 		input.setFont(new Font("Monospaced", Font.BOLD, 20));
 		input.setEditable(true);
@@ -58,6 +61,7 @@ public class Console extends JPanel {
 			}
 		});
 
+		//key listener for text field
 		input.addKeyListener(new KeyListener() {
 
 			@Override
@@ -82,28 +86,33 @@ public class Console extends JPanel {
 		this.setBackground(new Color(50, 50, 50));
 	}
 
+	//adds text the console in green font
 	public void addMessage(String text) {
 		addText(text, Color.GREEN);
 	}
 
+	//adds text to the console in red font
 	public void addError(String text) {
 		addText(text, Color.RED);
 	}
 
+	//inserts the 
 	private void addText(String text, Color c) {
 		Style style = console.addStyle("Style", null);
 		StyleConstants.setForeground(style, c);
 		try {
 			document.insertString(document.getLength(), text + "\n", style);
+			
+		//catches error when the connection is closed while text is being added; completely harmless
 		} catch (Error e) {
 			
 		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		scrollBottom();
 	}
 
+	//executes command entered into the textbox, if recognized
 	private void doCommand(String text) {
 		String[] commands = text.split(" ");
 		if (commands[0].equals("clear")) {
@@ -115,6 +124,7 @@ public class Console extends JPanel {
 		}
 	}
 
+	//clears the console
 	private void clear() {
 		try {
 			document.remove(0, document.getLength());
@@ -123,6 +133,7 @@ public class Console extends JPanel {
 		}
 	}
 
+	//sends send the argument bytes to the robot
 	private void send(String[] commands) {
 		if (commands.length <= 1) {
 			addError("Specify argument bytes to send");
@@ -144,6 +155,7 @@ public class Console extends JPanel {
 		}
 	}
 
+	//scrolls to the bottom of the screen
 	private void scrollBottom() {
 		console.setCaretPosition(document.getLength());
 	}

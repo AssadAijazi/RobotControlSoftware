@@ -9,25 +9,40 @@ import java.net.SocketException;
 import javax.swing.JButton;
 
 public class Launcher {
+	// default configuration for connection to robot mode
 	public static final String ROBOT_DEFAULT_ADDRESS = "192.168.1.102";
 	public static final int PORT = 5565;
+	// is the program currently in debug mode?
 	public static boolean isDebugMode;
+	// checks whether a socket connection is active
 	public static boolean connectionActivated = false;
+	// checks if connected to left joystick
 	public static boolean connectedToLeftStick;
+	// checks if connected to right joystick
 	public static boolean connectedToRightStick;
+	// used for debugging; hosts a server that the program can connect and send
+	// signals to
 	public static TestServer testServer;
+	// thread that sends a byte representing the joystick state once every
+	// second
 	public static PeriodicUpdate pu;
+	// thread that sends the joystick state if there is a change
 	public static UpdateOnChange uoc;
+	// thread that receives any signals from the robot/test server over the socket connection
 	public static ReceiveThread rt;
 
 	public static void main(String[] args) {
 		// handing network
 		String hostname = ROBOT_DEFAULT_ADDRESS;
+
+		// Class that controls sending bytes to the robot
 		NetworkDaemon nd = new NetworkDaemon(hostname, PORT);
+		// Class that controls the Graphical User Interface
 		UserInterface ui = new UserInterface(nd);
+
 		Joystick rightJoy = null;
 		Joystick leftJoy = null;
-
+		// connects to right joystick, if it is connected
 		try {
 			rightJoy = new Joystick(1);
 			connectedToRightStick = true;
@@ -37,7 +52,7 @@ public class Launcher {
 			System.err.println(e1);
 			connectedToRightStick = false;
 		}
-
+		// connects to left joystick, if it is connected
 		try {
 			leftJoy = new Joystick(2);
 			connectedToLeftStick = true;
@@ -51,13 +66,14 @@ public class Launcher {
 		// class for converting raw poll data to byte array
 		PollDataConverter pdc = new PollDataConverter();
 
+		// used for switching joysticks
 		JButton switchButton = ui.getSwitchButton();
 		switchButton.addActionListener(new SwitchButtonListener(rightJoy, leftJoy, ui));
-		JButton pauseButton = ui.getPauseButton();
 
 		// class for managing keyboard input
 		KeyboardHandler kbHandler = ui.getKeyboardhandler();
 
+		// raw float output from the left and right joystick, respectively
 		float[] rightOutput = new float[17];
 		float[] leftOutput = new float[17];
 
@@ -70,9 +86,11 @@ public class Launcher {
 				if (ui.getAttemptConnection()) {
 					attemptInitializeConnection(rightJoy, leftJoy, nd, pdc, ui);
 				}
+
 				// checks if disconnect button has been pushed
 			} else {
-
+				// closes socket connection, stops all of the sending and
+				// receiving threads
 				if (ui.getAttemptDisconnection()) {
 					nd.disconnect();
 					pu.interrupt();
@@ -93,12 +111,17 @@ public class Launcher {
 					ui.setAttemptDisconnection(false);
 					ui.setByteOutputColor(Color.BLACK);
 
+					// checks if pause button has been pushed; if so, closes
+					// the threads that send the joystick state to the robot
+					// but keeps everything else, i.e. socket connection and
+					// receiving thread
 				} else if (ui.getAttemptPause()) {
 					pu.interrupt();
 					uoc.interrupt();
 					ui.addMessage("Successfully paused Joystick Stream");
 					ui.setAttemptPause(false);
 
+					// resumes the joystick state stream if it has been paused
 				} else if (ui.getAttemptPlay()) {
 					pu = new PeriodicUpdate(nd, pdc, ui);
 					pu.start();
@@ -113,7 +136,8 @@ public class Launcher {
 
 			if (rightJoy != null) {
 
-				// updates joystick, receives raw data, then converts to byte
+				// updates right joystick, receives raw data, then converts to
+				// byte
 				// array
 				try {
 					rightJoy.update();
@@ -128,7 +152,8 @@ public class Launcher {
 
 			if (leftJoy != null) {
 
-				// updates joystick, receives raw data, then converts to byte
+				// updates right joystick, receives raw data, then converts to
+				// byte
 				// array
 				try {
 					leftJoy.update();
@@ -145,13 +170,16 @@ public class Launcher {
 				kbHandler.update();
 				rightOutput = kbHandler.getRawPollData();
 			}
+			// converts to the state of the two joysticks as specified in the
+			// PollDataConverter class
 			pdc.convert(rightOutput, leftOutput);
+			// updates user interface with the newly polled joystick data
 			ui.updateJoystickPanel(rightOutput, connectedToRightStick, leftOutput, connectedToLeftStick);
 		}
 
 	}
 
-	// used for switching which joystick is which
+	// used for switching which joysticks
 	public static class SwitchButtonListener implements ActionListener {
 
 		private Joystick rightJoy, leftJoy;
@@ -166,6 +194,8 @@ public class Launcher {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			boolean rightSwitched = false, leftSwitched = false;
+			// occurs if one joystick is actively connected and two total
+			// joyticks were found
 			if ((rightJoy != null && rightJoy.findDevicesConnected() == 2)
 					|| (leftJoy != null && leftJoy.findDevicesConnected() == 2)) {
 				if (rightJoy.getIndex() == 1) {
@@ -173,14 +203,12 @@ public class Launcher {
 						rightJoy.switchIndex(2);
 						rightSwitched = true;
 					} catch (IOException e1) {
-						// TODO Auto-generated catch block
 						ui.addError("Right Joystick: " + e1);
 					}
 					try {
 						leftJoy.switchIndex(1);
 						leftSwitched = true;
 					} catch (IOException e1) {
-						// TODO Auto-generated catch block
 						ui.addError("Left Joystick: " + e1);
 					}
 				} else {
@@ -188,20 +216,22 @@ public class Launcher {
 						rightJoy.switchIndex(1);
 						rightSwitched = true;
 					} catch (IOException e1) {
-						// TODO Auto-generated catch block
 						ui.addError("Right Joystick: " + e1);
 					}
 					try {
 						leftJoy.switchIndex(2);
 						leftSwitched = true;
 					} catch (IOException e1) {
-						// TODO Auto-generated catch block
 						ui.addError("Left Joystick: " + e1);
 					}
 				}
+				// adds message to ui if joysticks were successfully switched
 				if (rightSwitched && leftSwitched) {
 					ui.addMessage("Successfully switched joysticks");
 				}
+
+				// if there is only one or no joy sticks connected, switching
+				// fails
 			} else {
 				ui.addError("Not enough joysticks to switch");
 			}
@@ -227,8 +257,11 @@ public class Launcher {
 			// starts thread for update on change
 			uoc = new UpdateOnChange(rightJoy, leftJoy, nd, pdc, ui);
 			uoc.start();
+			// starts thread for receiving signals
 			rt = new ReceiveThread(nd, ui);
 			rt.start();
+
+			// updates user interface if successfully connected
 			ui.updateConnectionStatus(true);
 			if (isDebugMode) {
 				ui.addMessage("Successfully connected to Test Server");
@@ -243,6 +276,7 @@ public class Launcher {
 
 		}
 
+		// used to make sure it only tries once per button click
 		ui.setAttemptConnection(false);
 
 	}
@@ -253,21 +287,25 @@ public class Launcher {
 		PollDataConverter pdc;
 		UserInterface ui;
 
-		public PeriodicUpdate(NetworkDaemon net, PollDataConverter poll, UserInterface u) {
-			nd = net;
-			pdc = poll;
-			ui = u;
+		public PeriodicUpdate(NetworkDaemon nd, PollDataConverter pdc, UserInterface ui) {
+			this.nd = nd;
+			this.pdc = pdc;
+			this.ui = ui;
 		}
 
 		@Override
 		public void run() {
+
+			// sends a new signal every second (1000 milisconds);
+			// green flashing effect provided by turning the byte text
+			// green when the signal is sent, and then turing it black 900
+			// Milliseconds later
 			while (!Thread.currentThread().isInterrupted()) {
 				try {
 					Thread.sleep(100);
 					ui.setByteOutputColor(Color.BLACK);
 					Thread.sleep(900);
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					Thread.currentThread().interrupt();
 				}
 				if (nd.isConnected()) {
@@ -276,7 +314,6 @@ public class Launcher {
 						nd.send(pdc.getByteArr());
 						ui.setByteOutput(pdc.getByteArrAsStr());
 					} catch (Exception e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 						ui.addError(e.toString());
 					}
@@ -309,11 +346,16 @@ public class Launcher {
 		@Override
 		public void run() {
 			while (!Thread.currentThread().isInterrupted()) {
-				// should probably make this statement clearer...
+				// Sends the controller state to the robot if the socket connection is active
+				// and at least one of the following conditions is met:
+				// 1. Keyboard Mode is activated and keyboard state is changed
+				// 2. Keyboard Mode is NOT actived, right joy stick is connected, and its state is changed
+				// 3. Keyboard Mode is NOT actived, left joy stick is connected and its state is changed
 				if (nd.isConnected() && ((ui.getIsKB() && kbHandler.isChanged())
 						|| (rightJoy != null && !ui.getIsKB() && rightJoy.isChanged())
 						|| (leftJoy != null && !ui.getIsKB() && leftJoy.isChanged()))) {
 					try {
+						//flashes green when a new signal is sent
 						ui.setByteOutputColor(Color.GREEN);
 						nd.send(pdc.getByteArr());
 						ui.setByteOutput(pdc.getByteArrAsStr());
@@ -323,12 +365,15 @@ public class Launcher {
 					}
 				}
 			}
+			
+			//sets the text to black when the thread is interrupted
 			ui.setByteOutputColor(Color.BLACK);
-
 		}
 
 	}
 
+	//Thread for receiving signals from the socket, constantly running 
+	//independent of the sending threads
 	public static class ReceiveThread extends Thread {
 		NetworkDaemon nd;
 		UserInterface ui;
@@ -347,9 +392,12 @@ public class Launcher {
 						if (nd.isConnected()) {
 							input = nd.receive();
 						}
+						//prints the received byte array to the console in the UI
 						if (input.length > 0) {
 							ui.addMessage("Received: " + byteArrToString(input));
 						}
+						
+					//catches if socket is closed; thread is terminated
 					} catch (SocketException e) {
 						break;
 					} catch (Exception e) {
@@ -360,8 +408,7 @@ public class Launcher {
 		}
 	}
 
-	// fancy method from stack overflow to properly print bytes
-	// to console
+	// method to convert byte array to easily readable string
 
 	public static String byteArrToString(byte[] byteOutput) {
 		String formattedByteArr = "";
